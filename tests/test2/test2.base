@@ -1,0 +1,22 @@
+main : ctrl_msg = 12
+main : ping_msg = 13
+main : echo_msg = 14
+on_new_component : fd = 6, name = "tests/test2/mx_test_driver"
+on_new_ctrl_publisher : type = 12 (Control), fd = 6 (tests/test2/mx_test_driver)
+on_new_ctrl_publisher : publisher count = 1
+on_new_ping_subscriber : type = 13 (Ping), fd = 6 (tests/test2/mx_test_driver)
+on_new_ping_subscriber : subscriber count = 1
+on_connection_request : connection request on fd 5
+on_connection_request : accepted connection, new fd = 7
+on_data : read 10 bytes from fd 7: Data test.
+on_data : end of file on fd 7.
+handle_ctrl : fd = 6, type = 12, version = 0, size = 12, payload = "Ping me?"
+handle_ctrl : sent "Ping!", awaiting echo...
+handle_ctrl : received "Echo!"
+handle_ctrl : fd = 6, type = 12, version = 0, size = 8, payload = "Quit"
+handle_ctrl : calling mxClose()
+on_end_component : fd = 6, name = "tests/test2/mx_test_driver"
+on_end_ctrl_publisher : type = 12 (Control), fd = 6 (tests/test2/mx_test_driver)
+on_end_ctrl_publisher : publisher count = 0
+on_end_ping_subscriber : type = 13 (Ping), fd = 6 (tests/test2/mx_test_driver)
+on_end_ping_subscriber : subscriber count = 0
