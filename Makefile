@@ -1,7 +1,7 @@
 # Makefile: Description
 #
 # Copyright:	(c) 2013 Jacco van Schaik (jacco@jaccovanschaik.net)
-# Version:	$Id: Makefile 109 2013-10-14 18:34:37Z jacco $
+# Version:	$Id: Makefile 124 2013-10-26 16:15:18Z jacco $
 #
 # This software is distributed under the terms of the MIT license. See
 # http://www.opensource.org/licenses/mit-license.php for details.
@@ -12,8 +12,9 @@ all: libmx.so libmx.a mx
 
 include tests/tests.mk
 
-JVS_LIB = -L$(HOME)/lib -ljvs
-JVS_INC = -I$(HOME)/include
+JVS_TOP = $(HOME)
+JVS_LIB = -L$(JVS_TOP)/lib -ljvs
+JVS_INC = -I$(JVS_TOP)/include
 
 INSTALL_TOP = $(HOME)
 INSTALL_BIN = $(INSTALL_TOP)/bin

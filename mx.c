@@ -2,7 +2,7 @@
  * Message Exchange command line tool.
  *
  * Copyright:	(c) 2013 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:	$Id: mx.c 123 2013-10-17 18:41:53Z jacco $
+ * Version:	$Id: mx.c 125 2013-10-31 20:42:09Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
@@ -52,21 +52,78 @@ typedef struct {
 
 /* === Usage === */
 
-static void usage(FILE *fp, const char *argv0, int exit_code)
+static void usage(const char *argv0, int exit_code)
 {
-    fprintf(fp, "This is the Message Exchange command line tool.\n\n");
+    fprintf(stderr, "This is the Message Exchange command line tool.\n\n");
 
-    fprintf(fp, "Usage: %s <subcommand> [options]\n\n", argv0);
+    fprintf(stderr, "Usage: %s <subcommand> [options]\n\n", argv0);
 
-    fprintf(fp, "Subcommands:\n");
+    fprintf(stderr, "Subcommands:\n");
 
-    fprintf(fp, "\thelp\tshow this help.\n");
-    fprintf(fp, "\tmaster\trun the master component.\n");
-    fprintf(fp, "\tquit\task the master component to quit.\n");
-    fprintf(fp, "\tname\tshow the ns name being used.\n");
-    fprintf(fp, "\tport\tshow the master component's listen port.\n");
+    fprintf(stderr, "\thelp\tShow this help.\n");
+    fprintf(stderr, "\tmaster\tRun the master component.\n");
+    fprintf(stderr, "\tquit\tAsk the master component to quit.\n");
+    fprintf(stderr, "\tname\tShow the mx name being used.\n");
+    fprintf(stderr, "\tport\tShow the master component's listen port.\n\n");
+    fprintf(stderr, "Use \"%s help <subcommand>\" to get more information on a command.\n", argv0);
 
     exit(exit_code);
+}
+
+static int cmd_help(int argc, char *argv[])
+{
+    if (argc == 2) {
+        usage(argv[0], 0);
+    }
+    else if (strcmp(argv[2], "help") == 0) {
+        fprintf(stderr, "Usage: %s help <subcommand>\n\n", argv[0]);
+        fprintf(stderr, "Show help about %s subcommand <subcommand>\n", argv[0]);
+    }
+    else if (strcmp(argv[2], "master") == 0) {
+        fprintf(stderr, "Usage: %s master [options]\n\n", argv[0]);
+        fprintf(stderr, "Options:\n");
+        fprintf(stderr, "\t-n/--name <mx_name>\tUse this MX name\n");
+        fprintf(stderr, "\t-f/--foreground\t\tRun the master in the foreground\n\n");
+        fprintf(stderr, "This command runs the master component. The master component maintains\n");
+        fprintf(stderr, "the central database of messages and components involved in a message\n");
+        fprintf(stderr, "exchange. The name of the message exchange is set to the value of the\n");
+        fprintf(stderr, "-n/--name option (if it is given), otherwise the value of the MX_NAME\n");
+        fprintf(stderr, "environment variable (if it is set), otherwise the name of the current\n");
+        fprintf(stderr, "user. If the -f/--foreground option is given, the master will run in\n");
+        fprintf(stderr, "the foreground, otherwise it will background itself after opening its\n");
+        fprintf(stderr, "listen port.\n");
+    }
+    else if (strcmp(argv[2], "quit") == 0) {
+        fprintf(stderr, "Usage: %s quit [options]\n\n", argv[0]);
+        fprintf(stderr, "Options:\n");
+        fprintf(stderr, "\t-n/--name <mx_name>\tUse this MX name\n");
+        fprintf(stderr, "\t-h/--host <mx_host>\tClose the master on this host\n");
+        fprintf(stderr, "\t-v/--verbose\t\tVerbosely show progress\n\n");
+        fprintf(stderr, "This command shuts down the master component running under the given\n");
+        fprintf(stderr, "name on the given host. If the -n/--name option is not given, the\n");
+        fprintf(stderr, "value of the MX_NAME environment variable (if it is set) or the name\n");
+        fprintf(stderr, "of the current user is used as the name. If the -h/--host option is\n");
+        fprintf(stderr, "not given, the value of the MX_HOST environment variable (if it is\n");
+        fprintf(stderr, "set) is used, or else \"localhost\". If the -v/--verbose option is\n");
+        fprintf(stderr, "given, more information is given on how the shutdown progresses.\n");
+    }
+    else if (strcmp(argv[2], "name") == 0) {
+        fprintf(stderr, "Usage: %s name [options]\n\n", argv[0]);
+        fprintf(stderr, "Options:\n");
+        fprintf(stderr, "\t-n/--name <mx_name>\tUse this MX name\n\n");
+        fprintf(stderr, "This command prints the message exchange name that would be used with\n");
+        fprintf(stderr, "the current combination of -n/--name option, MX_NAME environment\n");
+        fprintf(stderr, "variable and user name. It can be used to determine the mx name\n");
+        fprintf(stderr, "currently in effect.\n");
+    }
+    else if (strcmp(argv[2], "port") == 0) {
+        fprintf(stderr, "Usage: %s port [options]\n\n", argv[0]);
+        fprintf(stderr, "Options:\n");
+        fprintf(stderr, "\t-n/--name <mx_name>\tUse this MX name\n\n");
+        fprintf(stderr, "This command prints the listen port that would be used by the master\n");
+        fprintf(stderr, "component given the current combination of -n/--name option, MX_NAME\n");
+        fprintf(stderr, "environment variable and user name.\n");
+    }
 }
 
 /*
@@ -478,13 +535,13 @@ int main(int argc, char *argv[])
     char *command;
 
     if (argc == 1) {
-        usage(stderr, argv[0], 0);
+        usage(argv[0], 0);
     }
 
     command = argv[1];
 
     if (strcmp(command, "help") == 0) {
-        usage(stderr, argv[0], 0);
+        cmd_help(argc, argv);
     }
     else if (strcmp(command, "master") == 0) {
         r = cmd_master(argc - 1, argv + 1);
@@ -504,7 +561,7 @@ int main(int argc, char *argv[])
     }
 
     if (r < 0) {
-        usage(stderr, argv[0], r);
+        usage(argv[0], r);
     }
 
     return r;
