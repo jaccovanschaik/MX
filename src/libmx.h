@@ -2,216 +2,397 @@
 #define LIBMX_H
 
 /*
- * libmx.h: Description
+ * libmx.h: Main interface to libmx.
  *
- * Copyright:	(c) 2013 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:	$Id: libmx.h 121 2013-10-15 20:00:35Z jacco $
+ * Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
+ * Version:	$Id: libmx.h 408 2017-02-13 11:24:13Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
  */
 
-#include <stdint.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdarg.h>
-#include <stddef.h>
+#include <stdint.h>
 
-typedef struct MX MX;           /* MX struct. */
-
-typedef uint32_t MX_Type;       /* MX message type. */
-typedef uint32_t MX_Size;       /* MX message payload size. */
-typedef uint32_t MX_Version;    /* MX message version number. */
+typedef struct MX MX;
 
 /*
- * Connect to the master component for message exchange <mx_name> on host <mx_host>. Introduce
- * myself as <my_name>. Returns a pointer to an MX struct. If <mx_name> is NULL, the environment
- * variable MX_NAME is used, or, if it doesn't exist, the current user name. If <mx_host> is NULL
- * it is set to the environment variable MX_HOST, or, if it doesn't exist, to "localhost". <my_name>
- * can not be NULL.
+ * Return the mx_name to use if <mx_name> was given to mxClient() or mxMaster().
+ * If it is a valid name (i.e. not NULL) use it. Otherwise use the environment
+ * variable MX_NAME if it is set. Otherwise use the environment variable USER
+ * (the user's login name) if it is set. Otherwise give up and return NULL.
  */
-MX *mxConnect(const char *mx_name, const char *mx_host, const char *my_name);
+const char *mxEffectiveName(const char *mx_name);
 
 /*
- * Register a message type with name <msg_name> using <mx>, and return the associated message type
- * id.
+ * Return the listen port that the master component will use for mx name
+ * <mx_name>.
  */
-MX_Type mxRegister(MX *mx, const char *msg_name);
+uint16_t mxEffectivePort(const char *mx_name);
 
 /*
- * Subscribe to messages of type <type> through <mx>. When a message of this type comes in call <cb>
- * with the properties of this message and the <udata> that was passed in here. The payload that is
- * passed to <cb> is the callee's responsibility, and they should free it when it is no longer
- * needed.
+ * Return the mx_host to use if <mx_host> was given to mxClient() or mxMaster().
+ * If it is a valid name (i.e. not NULL) use it. Otherwise use the environment
+ * variable MX_HOST if it is set. Otherwise simply use "localhost".
  */
-void mxSubscribe(MX *mx, MX_Type type, void (*cb)(MX *mx, int fd, MX_Type type, MX_Version version,
-                   MX_Size size, char *payload, void *udata), void *udata);
+const char *mxEffectiveHost(const char *mx_host);
 
 /*
- * Cancel your subscription to messages of type <type>.
+ * Scan the options given by <argc> and <argv> and extract the argument given
+ * with the <short_name> or <long_name> option. If found, the argument is
+ * returned through <argument> and the option and associated argument are
+ * removed from the option list. If not, <argument> is set to NULL and <argc>
+ * and <argv> are unchanged.
+ *
+ * If the given option is present but it has no argument, -1 is returned and an
+ * error message can be retrieved through mxError(). Otherwise 0 is returned.
+ *
+ * <short_name> and <long_name> should be given without the leading "-" or "--".
+ *
+ * The following formats are allowed:
+ *
+ *      -N Bla
+ *      -NBla
+ *      --mx-name Bla
+ *      --mx-name=Bla
  */
-void mxCancel(MX *mx, MX_Type type);
+int mxOption(char short_name, const char *long_name, int *argc, char *argv[], char **argument);
 
 /*
- * Announce that you'll be broadcasting messages of type <type>. This function must be called before
- * using mxBroadcast (or mxVaBroadcast). It is not necessary (but allowed) if you only use mxWrite,
- * mxPack or mxVaPack for this message type.
+ * Create and return an MX struct that will act as a client, connecting to the
+ * Message Exchange with name <mx_name> running on host <mx_host>. We will
+ * introduce ourselves as <my_name>.
+ *
+ * If <mx_host> is NULL, the environment variable MX_HOST is used. If that
+ * doesn't exist, "localhost" is used.
+ * If <mx_name> is NULL, the environment variable MX_NAME is used. If that
+ * doesn't exist, the environment variable USER is used. If that doesn't exist
+ * either, the function fails and NULL is returned.
+ * If <my_name> is NULL, the function fails and returns NULL.
+ *
+ * When this function finishes successfully, a listen port has been opened
+ * for other components to connect to. No other connections have been made, and
+ * no communication threads have been started yet.
  */
-void mxPublish(MX *mx, MX_Type type);
+MX *mxCreateClient(const char *mx_host, const char *mx_name, const char *my_name);
 
 /*
- * Withdraw the publication of messages of type <type>. No more messages of this type may be
- * broadcast after a call to this function.
+ * Create and return an MX struct that will act as a master for the Message
+ * Exchange with name <mx_name>, running on the local host.
+ *
+ * If <mx_name> is NULL, the environment variable MX_NAME is used. If that
+ * doesn't exist, the environment variable USER is used. If that doesn't exist
+ * either, the function fails and NULL is returned.
+ * If <my_name> is NULL, "master" is used.
+ *
+ * When this function returns, a listen port has been opened for clients to
+ * connect to.
  */
-void mxWithdraw(MX *mx, MX_Type type);
+MX *mxCreateMaster(const char *mx_name, const char *my_name);
 
 /*
- * Add a timer at time <t> to <mx>, and call <cb> with <udata> when it goes off.
+ * Begin running the threads that listen for connection and timer events.
  */
-void mxOnTime(MX *mx, double t, void (*cb)(MX *mx, double t, void *udata), const void *udata);
+int mxBegin(MX *mx);
 
 /*
- * Drop the previously added timer at time <t> with callback <cb> in <mx>. Both <t> and <cb> must
- * match the previously set timer.
+ * Create and return an MX struct that will act as a master for the Message
+ * Exchange with name <mx_name>, running on the local host.
+ *
+ * If <mx_name> is NULL, the environment variable MX_NAME is used. If that
+ * doesn't exist, the environment variable USER is used. If that doesn't exist
+ * either, the function fails and NULL is returned.
+ * If <my_name> is NULL, "master" is used.
+ *
+ * When this function returns, a listen port has been opened for clients to
+ * connect to, and the necessary background threads will also be started.
  */
-void mxDropTime(MX *mx, double t, void (*cb)(MX *mx, double t, void *udata));
+MX *mxMaster(const char *mx_name, const char *my_name);
 
 /*
- * Tell <mx> to call <cb> with <udata> when file descriptor <fd> has data avialable. <fd> in this
- * case represents a file descriptor opened by the user themselves, not one managed by <mx>.
+ * Create and return an MX struct that will act as a client for the Message
+ * Exchange with name <mx_name>, running on <mx_host>.
+ *
+ * If <mx_host> is NULL, the environment variable MX_HOST is used. If that
+ * doesn't exist, "localhost" is used.
+ * If <mx_name> is NULL, the environment variable MX_NAME is used. If that
+ * doesn't exist, the environment variable USER is used. If that doesn't exist
+ * either, the function fails and NULL is returned.
+ * If <my_name> is NULL, the function fails and returns NULL.
+ *
+ * When this function finishes successfully, a listen port has been opened for
+ * other components to connect to, and the necessary background threads will
+ * also be started.
  */
-void mxOnData(MX *mx, int fd, void (*cb)(MX *mx, int fd, void *udata), const void *udata);
+MX *mxClient(const char *mx_host, const char *mx_name, const char *my_name);
 
 /*
- * Tell <mx> to stop listening for data on <fd>. Again, <fd> is a file descriptor opened by the
- * user, not one managed by <mx>.
+ * Return the file descriptor on which all events associated with <mx> arrive.
  */
-void mxDropData(MX *mx, int fd);
+int mxConnectionNumber(MX *mx);
 
 /*
- * Call <cb> when a new component reports in. The file descriptor that the component is connected to
- * and its name are passed to <cb>, along with <udata>.
+ * Process any pending events associated with <mx>. Returns -1 if an error
+ * occurred, 1 if event processing has finished normally and 0 if no more events
+ * are forthcoming (so there's no sense in waiting for them anymore).
  */
-void mxOnNewComponent(MX *mx, void (*cb)(MX *mx, int fd, const char *name, void *udata), const void
-                        *udata);
+int mxProcessEvents(MX *mx);
 
 /*
- * Call <cb> when a component disconnects. The file descriptor where it was connected and its name
- * are passed to <cb> along with <udata>.
- */
-void mxOnEndComponent(MX *mx, void (*cb)(MX *mx, int fd, const char *name, void *udata), const void
-                        *udata);
-
-/*
- * Arrange for <cb> to be called if a new subscriber on message type <type> announces itself. Not
- * called for own subscriptions created with mxSubscribe.
- */
-void mxOnNewSubscriber(MX *mx, MX_Type type, void (*cb)(MX *mx, MX_Type type, int fd, void *udata),
-                         const void *udata);
-
-/*
- * Arrange for <cb> to be called if a new publisher of message type <type> announces itself. Not
- * called for own subscriptions created with mxPublish.
- */
-void mxOnNewPublisher(MX *mx, MX_Type type, void (*cb)(MX *mx, MX_Type type, int fd, void *udata),
-                        const void *udata);
-
-/*
- * Arrange for <cb> to be called if a subscriber to messages of type <type> exits or cancels its
- * subscription. Not called on mxCancel.
- */
-void mxOnEndSubscriber(MX *mx, MX_Type type, void (*cb)(MX *mx, MX_Type type, int fd, void *udata),
-                         const void *udata);
-
-/*
- * Arrange for <cb> to be called if a publisher of messages of type <type> exits or withdraws its
- * publication. Not called on mxWithdraw.
- */
-void mxOnEndPublisher(MX *mx, MX_Type type, void (*cb)(MX *mx, MX_Type type, int fd, void *udata),
-                        const void *udata);
-
-/*
- * Call <cb> when a new message is registered.
- */
-void mxOnNewMessage(MX *mx,
-        void (*cb)(MX *mx, const char *name, MX_Type type, void *udata), const void *udata);
-
-/*
- * Return the number of publishers of messages of type <type>.
- */
-int mxPublisherCount(MX *mx, MX_Type type);
-
-/*
- * Return the number of subscribers to messages of type <type>.
- */
-int mxSubscriberCount(MX *mx, MX_Type type);
-
-/*
- * Return the name of the component at file descriptor <fd> on <mx>.
- */
-const char *mxComponentName(MX *mx, int fd);
-
-/*
- * Return the name of message type <type>.
- */
-const char *mxMessageName(MX *mx, MX_Type type);
-
-/*
- * Write <payload>, which has size <size>, in a message of type <type> with version <version to file
- * descriptor <fd> over message exchange <mx>.
- */
-void mxWrite(MX *mx, int fd, MX_Type type, MX_Version version, const char *payload, size_t size);
-
-/*
- * Write a message of type <type> with version <version> to file descriptor <fd> over message
- * exchange <mx>. The payload of the message is constructed using the PACK_* method as described in
- * libjvs/utils.h.
- */
-void mxPack(MX *mx, int fd, MX_Type type, MX_Version version, ...);
-
-/*
- * Write a message of type <type> with version <version> to file descriptor <fd> over message
- * exchange <mx>. The payload of the message is constructed using the PACK_* arguments contained in
- * <ap>, as described in libjvs/utils.h.
- */
-void mxVaPack(MX *mx, int fd, MX_Type type, MX_Version version, va_list ap);
-
-/*
- * Broadcast a message with type <type> and version <version> to all subscribers of this message
- * type. The contents of the message are set using the "astrpack" interface from libjvs/utils.h.
- * Publication of this message type must have been announced with the mxPublish function.
- */
-void mxBroadcast(MX *mx, MX_Type type, MX_Version version, ...);
-
-/*
- * Broadcast a message with type <type> and version <version> to all subscribers of this message
- * type. The contents of the message are set using the "vastrpack" interface from libjvs/utils.h.
- * Publication of this message type must have been announced with the mxPublish function.
- */
-void mxVaBroadcast(MX *mx, MX_Type type, MX_Version version, va_list ap);
-
-/*
- * Wait for a message of type <type> to arrive over file descriptor <fd> on message exchange <mx>.
- * The version of the received message is returned through <version> and its payload through
- * <payload>. If the message arrives within <timeout> seconds, the function returns 0. If it doesn't
- * it returns 1. If some other (network) error occurs, it returns -1.
- */
-int mxAwait(MX *mx, int fd, MX_Type type, MX_Version *version, MX_Size *size, char **payload,
-              double timeout);
-
-/*
- * Run the message exchange <mx>. This function will return 0 if there are no more timers or
- * connections to wait for, or -1 if an error occurred.
+ * Loop while listening for and handling events. Returns -1 if an error occurred
+ * or 0 if mxShutdown was called.
  */
 int mxRun(MX *mx);
 
 /*
- * Close down message exchange <mx>. This will cause a call to mxRun or mxAwait to terminate.
+ * Return the name of the local component.
  */
-void mxClose(MX *mx);
+const char *mxMyName(const MX *mx);
 
 /*
- * Destroy message exchange <mx>. Do not call this inside mxRun. Instead, call mxClose and wait for
- * mxRun to terminate, then call mxDestroy.
+ * Return the current MX name.
+ */
+const char *mxName(const MX *mx);
+
+/*
+ * Return the current MX host, i.e. the host where the master component is
+ * running.
+ */
+const char *mxHost(const MX *mx);
+
+/*
+ * Return the current MX port, i.e. the port on which the master listens.
+ */
+uint16_t mxPort(const MX *mx);
+
+/*
+ * Register the message named <msg_name>. Returns the associated message type
+ * id.
+ */
+uint32_t mxRegister(MX *mx, const char *msg_name);
+
+/*
+ * Returns the name of message type <type>.
+ */
+const char *mxMessageName(MX *mx, uint32_t type);
+
+/*
+ * Returns the name of the component connected on fd <fd>.
+ */
+const char *mxComponentName(MX *mx, int fd);
+
+/*
+ * Subscribe to messages of type <type>. <handler> will be called for all
+ * incoming messages of this type, passing in the same <udata> that is passed in
+ * to this function. Returns <0 on errors, >0 on notices and 0 otherwise. Check
+ * mxError() when return value is not 0.
+ */
+int mxSubscribe(MX *mx, uint32_t type,
+        void (*handler)(MX *mx, int fd, uint32_t type, uint32_t version,
+            char *payload, uint32_t size, void *udata),
+        void *udata);
+
+/*
+ * Cancel our subscription to messages of type <type> that calls <handler>.
+ * Returns <0 on errors, >0 on notices and 0 otherwise. Check mxError() when
+ * return value is not 0.
+ */
+int mxCancel(MX *mx, uint32_t type);
+
+/*
+ * Call <handler> for new subscribers to message type <type>, passing in the
+ * same <udata> that was passed in here.
+ */
+void mxOnNewSubscriber(MX *mx, uint32_t type,
+        void (*handler)(MX *mx, int fd, uint32_t type, void *udata),
+        void *udata);
+
+/*
+ * Call <handler> when a subscriber cancels their subscription to messages of
+ * type <type>.
+ */
+void mxOnEndSubscriber(MX *mx, uint32_t type,
+        void (*handler)(MX *mx, int fd, uint32_t type, void *udata),
+        void *udata);
+
+/*
+ * Call <handler> when a new component reports in. <handler> is called with the
+ * file descriptor through which we're connected to the new component in <fd>,
+ * and its name in <name>.
+ */
+void mxOnNewComponent(MX *mx,
+        void (*handler)(MX *mx, int fd, const char *name, void *udata),
+        void *udata);
+
+/*
+ * Call <handler> when connection with a component is lost. <handler> is called
+ * with the file descriptor through which we were connected to the new component
+ * in <fd>, and its name in <name>.
+ */
+void mxOnEndComponent(MX *mx,
+        void (*handler)(MX *mx, int fd, const char *name, void *udata),
+        void *udata);
+
+/*
+ * Call <handler> when a new message type is registered.
+ */
+void mxOnNewMessage(MX *mx,
+        void (*handler)(MX *mx, uint32_t type, const char *name, void *udata),
+        void *udata);
+
+/*
+ * Send a message of type <type> to file descriptor <fd>.
+ */
+void mxSend(MX *mx, int fd, uint32_t type, uint32_t version, const void *payload, uint32_t size);
+
+/*
+ * Write a message of type <type> with version <version> to file descriptor <fd>
+ * over message exchange <mx>. The payload of the message is constructed using
+ * the PACK_* method as described in libjvs/utils.h.
+ */
+void mxPackAndSend(MX *mx, int fd, uint32_t type, uint32_t version, ...);
+
+/*
+ * Write a message of type <type> with version <version> to file descriptor <fd>
+ * over message exchange <mx>. The payload of the message is constructed using
+ * the PACK_* arguments contained in <ap>, as described in libjvs/utils.h.
+ */
+void mxVaPackAndSend(MX *mx, int fd, uint32_t type, uint32_t version, va_list ap);
+
+/*
+ * Broadcast a message with type <type>, version <version> and payload <payload>
+ * with size <size> to all subscribers of this message type.
+ */
+void mxBroadcast(MX *mx, uint32_t type, uint32_t version, const void *payload, uint32_t size);
+
+/*
+ * Broadcast a message with type <type> and version <version> to all subscribers
+ * of this message type. The contents of the message are set using the
+ * "astrpack" interface from libjvs/utils.h.
+ */
+void mxPackAndBroadcast(MX *mx, uint32_t type, uint32_t version, ...);
+
+/*
+ * Broadcast a message with type <type> and version <version> to all subscribers
+ * of this message type. The contents of the message are set using the
+ * "vastrpack" interface from libjvs/utils.h.
+ */
+void mxVaPackAndBroadcast(MX *mx, uint32_t type, uint32_t version, va_list ap);
+
+/*
+ * Wait for a message of type <type> to arrive on file descriptor <fd>. If the
+ * message arrives within <timeout> seconds, 1 is returned and the version,
+ * payload and payload size of the message are returned via <version>, <payload>
+ * and <size>. Otherwise, 0 is returned and <version>, <payload> and <size> are
+ * unchanged.
+ *
+ * If successful, <payload> points to a newly allocated memory buffer. It is the
+ * caller's responsibility to free it when it is no longer needed.
+ */
+int mxAwait(MX *mx, int fd, double timeout,
+        uint32_t type, uint32_t *version, char **payload, uint32_t *size);
+
+/*
+ * Send a message of type <request_type> with version <request_version> and the
+ * payload that follows (specified using the "astrpack" interface from
+ * libjvs/utils.h) to file descriptor <fd>, and wait for a reply with type
+ * <reply_type>. If the reply arrives within <timeout> seconds, 1 is returned
+ * and the version, payload and payload size of the reply are returned via
+ * <reply_version>, <reply_payload> and <reply_size>. Otherwise, 0 is returned
+ * and <reply_version>, <reply_payload> and <reply_size> are unchanged.
+ *
+ * If successful, <reply_payload> points to a newly allocated memory buffer. It
+ * is the caller's responsibility to free it when it is no longer needed.
+ */
+int mxPackAndWait(MX *mx, int fd, double timeout,
+        uint32_t reply_type, uint32_t *reply_version,
+        char **reply_payload, uint32_t *reply_size,
+        uint32_t request_type, uint32_t request_version, ...);
+
+/*
+ * Send a message of type <request_type> with version <request_version> and the
+ * payload that follows in <ap> (specified using the "astrpack" interface from
+ * libjvs/utils.h) to file descriptor <fd>, and wait for a reply with type
+ * <reply_type>. If the reply arrives within <timeout> seconds, 1 is returned
+ * and the version, payload and payload size of the reply are returned via
+ * <reply_version>, <reply_payload> and <reply_size>. Otherwise, 0 is returned
+ * and <reply_version>, <reply_payload> and <reply_size> are unchanged.
+ *
+ * If successful, <reply_payload> points to a newly allocated memory buffer. It
+ * is the caller's responsibility to free it when it is no longer needed.
+ */
+int mxVaPackAndWait(MX *mx, int fd, double timeout,
+        uint32_t reply_type, uint32_t *reply_version,
+        char **reply_payload, uint32_t *reply_size,
+        uint32_t request_type, uint32_t request_version, va_list ap);
+
+/*
+ * Send a message of type <request_type> with version <request_version>, payload
+ * <request_payload> and payload size <request_size> to file descriptor <fd>,
+ * and wait for a reply with type <reply_type>. If the reply arrives within
+ * <timeout> seconds, 1 is returned and the version, payload and payload size of
+ * the reply are returned via <reply_version>, <reply_payload> and <reply_size>.
+ * Otherwise, 0 is returned and <reply_version>, <reply_payload> and
+ * <reply_size> are unchanged.
+ *
+ * If successful, <reply_payload> points to a newly allocated memory buffer. It
+ * is the caller's responsibility to free it when it is no longer needed.
+ */
+int mxSendAndWait(MX *mx, int fd, double timeout,
+        uint32_t reply_type, uint32_t *reply_version,
+        char **reply_payload, uint32_t *reply_size,
+        uint32_t request_type, uint32_t request_version,
+        const char *request_payload, uint32_t request_size);
+
+/*
+ * Create a timer that will call <handler> at time <t> (seconds since the UNIX
+ * epoch). In future calls to mxAdjustTimer and mxRemoveTimer this timer will be
+ * identified by <id>. When calling <handler>, the same pointer <udata> given
+ * here will be passed back.
+ */
+void mxCreateTimer(MX *mx, uint32_t id, double t,
+        void (*handler)(MX *mx, uint32_t id, double t, void *udata),
+        void *udata);
+
+/*
+ * Adjust the time of the timer with id <id> to <t>.
+ */
+void mxAdjustTimer(MX *mx, uint32_t id, double t);
+
+/*
+ * Remove the timer with id <id>. This timer will not be triggered after all.
+ */
+void mxRemoveTimer(MX *mx, uint32_t id);
+
+/*
+ * Return the current UTC timestamp as a double.
+ */
+double mxNow(void);
+
+/*
+ * Shut down <mx>. After this function is called, the mxRun function will
+ * return.
+ */
+void mxShutdown(MX *mx);
+
+/*
+ * Destroy <mx>. Call this function only after mxRun has returned.
  */
 void mxDestroy(MX *mx);
+
+/*
+ * Return a text representation of the errors that have occurred up to now. The
+ * returned string becomes the property of the caller, who is responsible for
+ * freeing it. Calling this function empties the error string.
+ */
+char *mxError(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
