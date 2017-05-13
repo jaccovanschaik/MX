@@ -1,0 +1,1083 @@
+<html>
+  <!-- vim: set textwidth=100: -->
+  <head>
+    <title>MX</title>
+    <style>
+      body {
+        margin-left: 30px;
+      }
+      pre {
+        background: #E0E0F0;
+        border: 1px solid black;
+        padding: 5px;
+      }
+      span.func {
+        padding: 5px;
+        border: 1px solid black;
+        background: #E0F0E0;
+        font-family: monospace;
+        font-size: 120%;
+        font-weight: bold;
+      }
+      div.func {
+        padding: 5px;
+        border: 1px solid black;
+        background: #E0F0E0;
+        font-family: monospace;
+        font-size: 120%;
+        font-weight: bold;
+      }
+      span.parameter {
+        font-family: monospace;
+      }
+      table {
+        border-collapse:collapse;
+      }
+      table, td {
+        padding: 5px;
+        border: 1px solid black;
+        background: #F0E0E0;
+      }
+      img {
+        padding: 5px;
+        margin: 5px;
+        background: #F0F0E8;
+      }
+      h2 {
+        margin-left: -15px;
+      }
+      h3 {
+        margin-left: -15px;
+      }
+    </style>
+  </head>
+  <body>
+    <pre>** Documentation for MX.
+**
+** Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
+** Version:	$Id: index.html 404 2017-02-09 14:55:34Z jacco $
+**
+** This software is distributed under the terms of the MIT license. See
+** http://www.opensource.org/licenses/mit-license.php for details.</pre>
+    <h2>Introduction</h2>
+    <p>
+      MX is a light-weight communication library written in C. It provides programs that use it with
+      a way to publish and subscribe to messages. There is no predetermined structure to the payload
+      of a message. To MX, a message payload is a simple, opaque byte string.
+    </p>
+    <h3>Design considerations</h3>
+    <ol>
+      <li>
+        <p>
+          MX is not designed to be in operation 24/7. Although it is possible, with some care, to
+          build such a system using MX, that is not what MX was designed for. It is assumed that
+          systems built on top of MX will be started, run for some time and then be shut down.
+        </p>
+        <p>
+          <em>
+            (The reason for this is that <a href="#MessageTypes">message types</a>, once created,
+            are never re-used, which makes them a limited resource. If you design a system that only
+            allocates a fixed number of message types it should be possible to run it indefinitely,
+            but MX will not prevent you from exhausting the available message types. On the other
+            hand, a message type is a 32-bit unsigned integer so it'll take a while to exhaust that
+            supply).
+          </em>
+        </p>
+      </li>
+      <li>
+        <p>
+          MX is not designed to be particularly resilient against external hardware or software
+          failures. It is assumed that a run-time failure in any of the participating components
+          signifies a serious problem that will be rectified before trying again. MX will report the
+          failure but will not try to restart the failed component, for example.
+        </p>
+        <p>
+          Also, the master component constitutes a single point of failure. If it crashes or is
+          killed all other participating components will also exit. This should not be a big problem
+          for a standalone master (started using <tt>mx master</tt>) because it is fairly robust,
+          but if another component assumes the master role (see the
+          <a href="#mxMaster">mxMaster</a> function) and it quits or crashes, all other
+          participating components will exit too.
+        </p>
+      </li>
+      <li>
+        <p>
+          Finally, security was not a design consideration for MX. If you can connect to the master
+          component it is trivially easy to kill it with a hand-crafted message (indeed, this
+          message was specifically designed to make it so), components connect to each other without
+          any authentication, and messages are exchanged without any encryption. MX is expected to
+          run on a private network where all connected devices can be trusted.
+        </p>
+      </li>
+    </ol>
+    <p>
+      <b>TL;DR</b>: If you are planning to use MX for a nuclear power station you should probably
+      reconsider.
+    </p>
+    <h2>Concepts</h2>
+    <a name="MessageExchange"><h3>Message exchange</h3>
+      <p>
+        A message exchange is like a stock exchange, but instead of connecting buyers and sellers of
+        stocks it connects publishers and subscribers of messages. It allows connected programs
+        (known as <em>components</em>) to subscribe to certain types of messages. Other components
+        can broadcast messages, and they will automatically be sent to those components that have
+        subscribed to that particular message type.
+      </p>
+    </a>
+    <a name="components"><h3>Master and client components</h3>
+      <p>
+        One of the components in a message exchange is the <em>master</em>. It maintains the central
+        store of message types, participating components and their subscriptions. All other
+        components (known as <em>clients</em>) are informed about changes in this central store by
+        messages from the master and use these to update their own copy of it. The master component
+        can be a standalone program but its role can also be incorporated into one of the clients.
+      </p>
+    </a>
+    <a name="MxName"><h3>MX name</h3>
+      <p>
+        This is the name of the message exchange. The MX name is determined using the following
+        steps:
+      </p>
+      <ol>
+        <li>
+          If a valid name (i.e. not a <tt>NULL</tt> pointer) was given in the call to
+          <a href="#mxClient">mxClient</a> or <a href="#mxMaster">mxMaster</a>,
+          it is used.
+        </li>
+        <li>
+          Otherwise, if the environment variable <tt>MX_NAME</tt> exists, its contents are used.
+        </li>
+        <li>
+          Otherwise the login name of the current user is used.
+        </li>
+      </ol>
+      <p>
+        The MX name is hashed to generate a port number between 1024 and 65535 inclusive. The master
+        listens on this port on all interfaces and the clients connect to it. It is therefore a
+        fixed "access point" to the message exchange. All the other port numbers used by MX are
+        allocated dynamically by the operating system. This scheme makes it possible to run many
+        message exchanges on a single host (assuming the used MX names don't result in the same hash
+        value, and assuming you don't simply run out of IP ports).
+      </p>
+    </a>
+    <a name="MxHost"><h3>MX host</h3>
+      <p>
+        This is the host where the master component for a message exchange runs. A message exchange
+        is identified by the combination of the host on which it runs and its MX name. It is
+        therefore possible to run multiple, separate message exchanges with the same MX name on
+        differents hosts, and it is possible to run multiple message exchanges on the same host as
+        long as they have different names.
+      </p>
+      <p>
+        The master component binds its listen port to all available interfaces. The other components
+        use the following steps to determine the MX host to connect to:
+      </p>
+      <ol>
+        <li>
+          If a host name was used in the call to <a href="#mxClient">mxClient</a>, it is used.
+        </li>
+        <li>
+          Otherwise, if the environment variable <tt>MX_HOST</tt> exists, its contents are used.
+        </li>
+        <li>
+          Otherwise "localhost" is used.
+        </li>
+      </ol>
+    </a>
+    <a name="MessageTypes">
+      <h3>Message types</h3>
+      <p>
+        A message type is a unique ID assigned to a kind of message (not to individual messages!)
+        They are allocated starting at 0, but message types 0 through 9 are used by MX itself (see
+        the <a href="#MessageStructure">Message structure</a> section for a description of these
+        messages). Message types available to the user therefore start at 10. A message type is a
+        32-bit unsigned integer, so there are 2<sup>32</sup> = 4,294,967,296 message types available
+        in total. If that isn't enough it is also possible to transmit a version number along with
+        the message. The version number is also a 32-bit unsigned integer.
+      </p>
+      <p>
+        Message types must be registered before they can be used. Components do this by calling the
+        <a href="#mxRegister">mxRegister</a> function. They can pass in a name by which the message
+        type will henceforth be known. If any other component registers a message with the same name
+        they will get the same message type. This way, message types are coordinated between
+        components.
+      </p>
+      <p>
+        Components can also register an anonymous message (by using <tt>NULL</tt> for the message
+        name). This allocates a new message type without associating it with a name. This way
+        components can allocate a message type for their own private use.
+      </p>
+      <p>
+        Message types are never reused, so it is possible to exhaust the number of message types
+        in a single run, depending of course on how quickly they are used up.
+      </p>
+    </a>
+    <a name="MxExecutable">
+      <h2>The mx executable</h2>
+      <p>
+        MX comes with an executable, appropriately called "<tt>mx</tt>". Typing just <tt>mx</tt> or
+        <tt>mx help</tt> will show the following usage information:
+      </p>
+      <pre>Usage: mx &lt;command&gt; [ &lt;options&gt; ]
+
+Commands:
+  help     Show help
+  master   Run a master component
+  name     Print the effective MX name
+  host     Print the effective MX host
+  port     Print the effective MX port
+  list     Show a list of participating components
+  quit     Ask the master component to exit
+  version  Show the current version of MX
+
+Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
+    </a>
+    <h2>Using MX</h2>
+    <p>
+      In a program that uses MX, there are two phases to be distinguished: first there is some
+      setup, then you enter the message loop.
+    </p>
+    <h3>Setup</h3>
+    <p>
+      In the setup phase you do the following:
+    </p>
+    <dl>
+      <dt>
+        Get a pointer to an MX struct by calling <a href="#mxClient">mxClient</a> or
+        <a href="#mxMaster">mxMaster</a>.
+      </dt>
+      <dd>
+        Normal components should use <a href="#mxClient">mxClient</a> to connect to a
+        master component, giving the hostname where it runs and the MX name, along with the name
+        under which the component itself wants to be known. Components that also want to assume the
+        master role themselves should call <a href="#mxMaster">mxMaster</a> with just the
+        MX name and their own name. Note, however, that only one component can be the master.
+      </dd>
+      <dt>
+        Register the message types you're interested in using <a href="#mxRegister">mxRegister</a>.
+      </dt>
+      <dd>
+        This should be done for the message types that you want to subscribe to and those you want
+        to publish. The <a href="#mxRegister">mxRegister</a> function returns the message type ID
+        that you should use for all subsequent activities.
+      </dd>
+      <dt>Subscribe to the messages you're interested in and possibly to other events.</dt>
+      <dd>
+        With every subscription you specify a callback function that should be called whenever a
+        message of the given type is received. You can also subscribe to other events, such as new
+        messages being registered, components connecting to or disconnecting from the master, or
+        components subscribing to or unsubscribing from a message type. With every subscription you
+        can also pass in an opaque void pointer <tt>udata</tt> (for "user data") which is passed
+        back to you unchanged on every delivery.
+      </dd>
+    </dl>
+    <h3>Message loop</h3>
+    <p>
+      There are two ways to run the message loop: call the <a href="#mxRun">mxRun</a> function which
+      will handle everything for you and exit when the user calls <a
+      href="#mxShutdown">mxShutdown</a>, or listen for events yourself and call the <a
+      href="#mxProcessEvents">mxProcessEvents</a> function to have MX handle them.
+    </p>
+    <dl>
+      <dt>Using <a href="#mxRun">mxRun</a></dt>
+      <dd>
+        This is the simplest method. Simply call the <a href="#mxRun">mxRun</a> function after the
+        setup is done, and this will run continuously, calling registered callbacks as necessary,
+        until the <a href="#mxShutdown">mxShutdown</a> function is called or until the connection to
+        the master component is lost.
+      </dd>
+      <dt>Using <a href="#mxProcessEvents">mxProcessEvents</a></dt>
+      <dd>
+        This method can be used if you need to run the application's event loop yourself. You can
+        listen on the file descriptor returned by the <a
+        href="#mxConnectionNumber">mxConnectionNumber</a> function, and when that file descriptor
+        becomes "ready for read" you call the <a href="#mxProcessEvents">mxProcessEvents</a>
+        function. This will then handle the incoming data and call the appropriate handlers.
+      </dd>
+    </dl>
+    <p>
+      By the way, it is perfectly fine to register and subscribe to new messages once the message
+      loop is running.
+    </p>
+    <h2>Function reference</h2>
+    <a name="mxEffectiveName">
+      <p>
+        <div class="func">const char *mxEffectiveName(const char *mx_name)</div>
+      </p>
+      <p>
+        Return the mx_name that would be used if <span class="parameter">mx_name</span> were to be
+        given to <tt><a href="#mxClient">mxClient</a></tt>. If it is a valid name (i.e. not
+        <tt>NULL</tt>) that same name is returned. Otherwise, if the environment variable
+        <tt>MX_NAME</tt> is set it is returned. Otherwise, if the environment variable <tt>USER</tt>
+        (the user's login name) is set it is returned. Otherwise MX gives up and <tt>NULL</tt> is
+        returned.
+      </p>
+    </a>
+    <a name="mxEffectivePort">
+      <p>
+        <div class="func">uint16_t mxEffectivePort(const char *mx_name)</div>
+      </p>
+      <p>
+        Return the listen port that the master component will use for the message exchange with
+        name <span class="parameter">mx_name</span>. The same algorithm as indicated for <a
+        href="#mxEffectiveName">mxEffectiveName</a> is used to determine the effective
+        <tt>mx_name</tt>.
+      </p>
+    </a>
+    <a name="mxEffectiveHost">
+      <p>
+        <div class="func">const char *mxEffectiveHost(const char *mx_host)</div>
+      </p>
+      <p>
+        Return the mx_host that would be used if <span class="parameter">mx_host</span> were to be
+        given to <tt><a href="#mxClient">mxClient</a></tt> or <tt><a
+        href="#mxMaster">mxMaster</a></tt>. If it is a valid name (i.e. not <tt>NULL</tt>) it is
+        returned. Otherwise, if the environment variable <tt>MX_HOST</tt> is set it is returned.
+        Otherwise "localhost" is returned.
+      </p>
+    </a>
+    <a name="mxClient">
+      <p>
+        <div class="func">MX *mxClient(const char *mx_host, const char *mx_name, const char
+        *my_name)</div>
+      </p>
+      <p>
+        Connect to the message exchange with MX name <span class="parameter">mx_name</span> at <span
+        class="parameter">mx_host</span> and introduce ourselves as <span
+        class="parameter">my_name</span>. Creates and returns a new MX struct.
+      </p>
+    </a>
+    <a name="mxMaster">
+      <p>
+        <div class="func">MX *mxMaster(const char *mx_name, const char *my_name)</div>
+      </p>
+      <p>
+        Start a new message exchange with MX name <span class="parameter">mx_name</span>. Returns a
+        new MX struct that can henceforth be used as a regular component.
+      </p>
+    </a>
+    <a name="mxMyName">
+      <p>
+        <div class="func">const char *mxMyName(const MX *mx)</div>
+      </p>
+      <p>
+        Return the name of the local component, as passed to <tt><a
+        href="#mxClient">mxClient</a></tt> or <tt><a href="#mxMaster">mxMaster</a></tt> as
+        <span class="parameter">my_name</span>.
+      </p>
+    </a>
+    <a name="mxName">
+      <p>
+        <div class="func">const char *mxName(const MX *mx)</div>
+      </p>
+      <p>
+        Return the current MX name for <span class="parameter">mx</span>.
+      </p>
+    </a>
+    <a name="mxHost">
+      <p>
+        <div class="func">const char *mxHost(const MX *mx)</div>
+      </p>
+      <p>
+        Return the current MX host, i.e. the host where <span class="parameter">mx</span>'s master
+        component is running.
+      </p>
+    </a>
+    <a name="mxPort">
+      <p>
+        <div class="func">uint16_t mxPort(const MX *mx)</div>
+      </p>
+      <p>
+        Return the current MX port, i.e. the port on which the master for <span
+        class="parameter">mx</span> listens.
+      </p>
+    </a>
+    <a name="mxRegister">
+      <p>
+        <div class="func">uint32_t mxRegister(MX *mx, const char *msg_name)</div>
+      </p>
+      <p>
+        Register the message named <span class="parameter">msg_name</span>. Returns the associated
+        message type. If you pass in <tt>NULL</tt> for <span class="parameter">msg_name</span>, an
+        anonymous message type is allocated and returned to you. This message type will not be
+        issued to anyone else.
+      </p>
+    </a>
+    <a name="mxMessageName">
+      <p>
+        <div class="func">const char *mxMessageName(MX *mx, uint32_t type)</div>
+      </p>
+      <p>
+        Returns the name associated with message type <span class="parameter">type</span>.
+      </p>
+    </a>
+    <a name="mxComponentName">
+      <p>
+        <div class="func">const char *mxComponentName(MX *mx, int fd)</div>
+      </p>
+      <p>
+        Returns the name of the component connected on fd <span class="parameter">fd</span>.
+      </p>
+    </a>
+    <a name="mxSubscribe">
+      <p>
+        <div class="func">void mxSubscribe(MX *mx, uint32_t type,
+          void (*handler)(MX *mx, int fd, uint32_t type, uint32_t version,
+              char *payload, uint32_t size, void *udata), void *udata)</div>
+      </p>
+      <p>
+        Subscribe to messages of type <span class="parameter">type</span>. <span
+        class="parameter">handler</span> will be called for all incoming messages of this type
+        (unless you are explicitly waiting for it by calling any of the <tt>Wait</tt> or
+        <tt>Await</tt> functions). The <span class="parameter">udata</span> parameter that you pass
+        into this function will be passed back to you unchanged in the callback.
+      </p>
+    </a>
+    <a name="mxCancel">
+      <p>
+        <div class="func">void mxCancel(MX *mx, uint32_t type)</div>
+      </p>
+      <p>
+        Cancel your subscription to messages of type <span class="parameter">type</span>.
+      </p>
+    </a>
+    <a name="mxOnNewSubscriber">
+      <p>
+        <div class="func">void mxOnNewSubscriber(MX *mx, uint32_t type,
+          void (*handler)(MX *mx, uint32_t type, int fd, void *udata),
+          void *udata)</div>
+      </p>
+      <p>
+        Call <span class="parameter">handler</span> for new subscribers to message type <span
+        class="parameter">type</span>, passing in the same <span class="parameter">udata</span> that
+        was passed in here. <span class="parameter">fd</span> is the file descriptor on which we are
+        connected with the component that has subscribed to <span class="parameter">type</span>.
+      </p>
+    </a>
+    <a name="mxOnEndSubscriber">
+      <p>
+        <div class="func">void mxOnEndSubscriber(MX *mx, uint32_t type,
+          void (*handler)(MX *mx, uint32_t type, int fd, void *udata),
+          void *udata)</div>
+      </p>
+      <p>
+        Call <span class="parameter">handler</span> when a subscriber cancels their subscription to
+        messages of type <span class="parameter">type</span>.
+      </p>
+    </a>
+    <a name="mxOnNewComponent">
+      <p>
+        <div class="func">void mxOnNewComponent(MX *mx,
+          void (*handler)(MX *mx, int fd, const char *name, void *udata),
+          void *udata)</div>
+      </p>
+      <p>
+        Call <span class="parameter">handler</span> when a new component reports in. <span
+        class="parameter">handler</span> is called with the file descriptor through which we're
+        connected to the new component in <span class="parameter">fd</span>, and its name in <span
+        class="parameter">name</span>.
+      </p>
+    </a>
+    <a name="mxOnEndComponent">
+      <p>
+        <div class="func">void mxOnEndComponent(MX *mx,
+          void (*handler)(MX *mx, int fd, const char *name, void *udata),
+          void *udata)</div>
+      </p>
+      <p>
+        Call <span class="parameter">handler</span> when connection with a component is lost. <span
+        class="parameter">handler</span> is called with the file descriptor through which we were
+        connected to the new component in <span class="parameter">fd</span>, and its name in <span
+        class="parameter">name</span>.
+      </p>
+    </a>
+    <a name="mxOnNewMessage">
+      <p>
+        <div class="func">void mxOnNewMessage(MX *mx,
+          void (*handler)(MX *mx, uint32_t type, const char *name, void *udata),
+          void *udata)</div>
+      </p>
+      <p>
+        Call <span class="parameter">handler</span> when a new message type is registered.
+      </p>
+    </a>
+    <a name="mxSend">
+      <p>
+        <div class="func">void mxSend(MX *mx, int fd,
+          uint32_t type, uint32_t version,
+          const void *payload, uint32_t size)</div>
+      </p>
+      <p>
+        Send a message of <span class="parameter">type</span> with <span
+        class="parameter">version</span> to file descriptor <span class="parameter">fd</span>. Send
+        payload <span class="parameter">payload</span> which has size <span
+        class="parameter">size</span>.
+      </p>
+      <p>
+        The message is sent even if the destination component is not subscribed to it. It is
+        usually used in combination with one of the <tt>Wait</tt> or <tt>Await</tt> functions
+        in the destination (this goes for all of the <tt>Send</tt> functions).
+      </p>
+    </a>
+    <a name="mxPackAndSend">
+      <p>
+        <div class="func">void mxPackAndSend(MX *mx, int fd, uint32_t type, uint32_t version,
+        ...)</div>
+      </p>
+      <p>
+        Write a message of type <span class="parameter">type</span> with version <span
+        class="parameter">version</span> to file descriptor <span class="parameter">fd</span> over
+        message exchange <span class="parameter">mx</span>. The payload of the message is
+        constructed using the PACK_* method as described in libjvs/utils.h.
+      </p>
+    </a>
+    <a name="mxVaPackAndSend">
+      <p>
+        <div class="func">void mxVaPackAndSend(MX *mx, int fd, uint32_t type, uint32_t version,
+        va_list ap)</div>
+      </p>
+      <p>
+        Write a message of type <span class="parameter">type</span> with version <span
+        class="parameter">version</span> to file descriptor <span class="parameter">fd</span> over
+        message exchange <span class="parameter">mx</span>. The payload of the message is
+        constructed using the PACK_* arguments contained in <span class="parameter">ap</span>, as
+        described in libjvs/utils.h.
+      </p>
+    </a>
+    <a name="mxBroadcast">
+      <p>
+        <div class="func">void mxBroadcast(MX *mx, uint32_t type, uint32_t version, const void
+        *payload, uint32_t size)</div>
+      </p>
+      <p>
+        Broadcast a message with type <span class="parameter">type</span>, version <span
+        class="parameter">version</span> and payload <span class="parameter">payload</span> with
+        size <span class="parameter">size</span> to all subscribers of this message type.
+      </p>
+    </a>
+    <a name="mxPackAndBroadcast">
+      <p>
+        <div class="func">void mxPackAndBroadcast(MX *mx, uint32_t type, uint32_t version,
+        ...)</div>
+      </p>
+      <p>
+        Broadcast a message with type <span class="parameter">type</span> and version <span
+        class="parameter">version</span> to all subscribers of this message type. The payload of the
+        message is constructed using the PACK_* method as described in libjvs/utils.h.
+      </p>
+    </a>
+    <a name="mxVaPackAndBroadcast">
+      <p>
+        <div class="func">void mxVaPackAndBroadcast(MX *mx, uint32_t type, uint32_t version, va_list
+        ap)</div>
+      </p>
+      <p>
+        Broadcast a message with type <span class="parameter">type</span> and version <span
+        class="parameter">version</span> to all subscribers of this message type. The payload of
+        the message is constructed using the PACK_* method as described in libjvs/utils.h.
+      </p>
+    </a>
+    <a name="mxAwait">
+      <p>
+        <div class="func">int mxAwait(MX *mx, int fd, double timeout,
+          uint32_t type, uint32_t *version, char **payload, uint32_t *size)</div>
+      </p>
+      <p>
+        Wait for a message of type <span class="parameter">type</span> to arrive on file descriptor
+        <span class="parameter">fd</span>. If the message arrives within <span
+        class="parameter">timeout</span> seconds, 1 is returned and the version, payload and payload
+        size of the message are returned via <span class="parameter">version</span>, <span
+        class="parameter">payload</span> and <span class="parameter">size</span>. Otherwise, 0 is
+        returned and <span class="parameter">version</span>, <span class="parameter">payload</span>
+        and <span class="parameter">size</span> are unchanged.
+      </p>
+    </a>
+    <a name="mxSendAndWait">
+      <p>
+        <div class="func">int mxSendAndWait(MX *mx, int fd, double timeout,
+          uint32_t reply_type, uint32_t *reply_version,
+          char **reply_payload, uint32_t *reply_size,
+          uint32_t request_type, uint32_t request_version,
+          const char *request_payload, uint32_t request_size)</div>
+      </p>
+      <p>
+        Send a message of type <span class="parameter">request_type</span> with version <span
+        class="parameter">request_version</span>, payload <span
+        class="parameter">request_payload</span> and payload size <span
+        class="parameter">request_size</span> to file descriptor <span class="parameter">fd</span>,
+        and wait for a reply with type <span class="parameter">reply_type</span>. If the reply
+        arrives within <span class="parameter">timeout</span> seconds, 1 is returned and the
+        version, payload and payload size of the reply are returned via <span
+        class="parameter">reply_version</span>, <span class="parameter">reply_payload</span> and
+        <span class="parameter">reply_size</span>. Otherwise, 0 is returned and <span
+        class="parameter">reply_version</span>, <span class="parameter">reply_payload</span> and
+        <span class="parameter">reply_size</span> are unchanged.
+      </p>
+    </a>
+    <a name="mxPackAndWait">
+      <p>
+        <div class="func">int mxPackAndWait(MX *mx, int fd, double timeout,
+          uint32_t reply_type, uint32_t *reply_version,
+          char **reply_payload, uint32_t *reply_size,
+          uint32_t request_type, uint32_t request_version, ...)</div>
+      </p>
+      <p>
+        Send a message of type <span class="parameter">request_type</span> with version <span
+        class="parameter">request_version</span> and the payload that follows (specified using the
+        PACK_* method from libjvs/utils.h) to file descriptor <span
+        class="parameter">fd</span>, and wait for a reply with type <span
+        class="parameter">reply_type</span>. If the reply arrives within <span
+        class="parameter">timeout</span> seconds, 1 is returned and the version, payload and payload
+        size of the reply are returned via <span class="parameter">reply_version</span>, <span
+        class="parameter">reply_payload</span> and <span class="parameter">reply_size</span>.
+        Otherwise, 0 is returned and <span class="parameter">reply_version</span>, <span
+        class="parameter">reply_payload</span> and <span class="parameter">reply_size</span> are
+        unchanged.
+      </p>
+    </a>
+    <a name="mxVaPackAndWait">
+      <p>
+        <div class="func">int mxVaPackAndWait(MX *mx, int fd, double timeout,
+          uint32_t reply_type, uint32_t *reply_version,
+          char **reply_payload, uint32_t *reply_size,
+          uint32_t request_type, uint32_t request_version, va_list ap)</div>
+      </p>
+      <p>
+        Send a message of type <span class="parameter">request_type</span> with version <span
+        class="parameter">request_version</span> and the payload that follows in <span
+        class="parameter">ap</span> (specified using the PACK_* method from libjvs/utils.h)
+        to file descriptor <span class="parameter">fd</span>, and wait for a reply with type <span
+        class="parameter">reply_type</span>. If the reply arrives within <span
+        class="parameter">timeout</span> seconds, 1 is returned and the version, payload and payload
+        size of the reply are returned via <span class="parameter">reply_version</span>, <span
+        class="parameter">reply_payload</span> and <span class="parameter">reply_size</span>.
+        Otherwise, 0 is returned and <span class="parameter">reply_version</span>, <span
+        class="parameter">reply_payload</span> and <span class="parameter">reply_size</span> are
+        unchanged.
+      </p>
+    </a>
+    <a name="mxCreateTimer">
+      <p>
+        <div class="func">void mxCreateTimer(MX *mx, uint32_t id, double t,
+        void (*handler)(MX *mx, uint32_t id, double t, void *udata),
+        void *udata)</div>
+      </p>
+      <p>
+        Create a timer that will call <span class="parameter">handler</span> at time <span
+        class="parameter">t</span> (seconds since the UNIX epoch). In future calls to mxAdjustTimer
+        and mxRemoveTimer this timer will be identified by <span class="parameter">id</span>. When
+        calling <span class="parameter">handler</span>, the same pointer <span
+        class="parameter">udata</span> given here will be passed back.
+      </p>
+    </a>
+    <a name="mxAdjustTimer">
+      <p>
+        <div class="func">void mxAdjustTimer(MX *mx, uint32_t id, double t)</div>
+      </p>
+      <p>
+        Adjust the time of the timer with id <span class="parameter">id</span> to <span
+        class="parameter">t</span>.
+      </p>
+    </a>
+    <a name="mxRemoveTimer">
+      <p>
+        <div class="func">void mxRemoveTimer(MX *mx, uint32_t id)</div>
+      </p>
+      <p>
+        Remove the timer with id <span class="parameter">id</span>. This timer will not be triggered
+        after all.
+      </p>
+    </a>
+    <a name="mxNow">
+      <p>
+        <div class="func">double mxNow(void)</div>
+      </p>
+      <p>
+        Return the current UNIX timestamp as a double-precision floating point number.
+      </p>
+    </a>
+    <a name="mxConnectionNumber">
+      <p>
+        <div class="func">int mxConnectionNumber(MX *mx)</div>
+      </p>
+      <p>
+        Return the file descriptor on which all events associated with <span
+        class="parameter">mx</span> arrive.
+      </p>
+    </a>
+    <a name="mxProcessEvents">
+      <p>
+        <div class="func">int mxProcessEvents(MX *mx)</div>
+      </p>
+      <p>
+        Process any pending events associated with <span class="parameter">mx</span>.
+      </p>
+    </a>
+    <a name="mxRun">
+      <p>
+        <div class="func">int mxRun(MX *mx)</div>
+      </p>
+      <p>
+        Start the event loop for <span class="parameter">mx</span>.
+      </p>
+    </a>
+    <a name="mxShutdown">
+      <p>
+        <div class="func">void mxShutdown(MX *mx)</div>
+      </p>
+      <p>
+        Shut down <span class="parameter">mx</span>. After this function is called, the <a
+        href="#mxRun">mxRun</a> function will return.
+      </p>
+    </a>
+    <a name="mxDestroy">
+      <p>
+        <div class="func">void mxDestroy(MX *mx)</div>
+      </p>
+      <p>
+        Destroy <span class="parameter">mx</span>. Call this function only after <a
+        href="#mxRun">mxRun</a> has returned.
+      </p>
+    </a>
+    <h2>Internals</h2>
+    <a name="MessageStructure">
+      <h3>Message structure</h3>
+      <p>
+        MX messages consist of two parts: the <em>header</em> and the <em>payload</em>. The header
+        has a fixed size of 12 bytes and looks like this:
+      </p>
+      <img src="MsgHeader.png"/>
+      <p>
+        It contains:
+      </p>
+      <ul>
+        <li>Message type (big-endian unsigned 32-bit integer)</li>
+        <li>Message version (big-endian unsigned 32-bit integer)</li>
+        <li>Payload length (big-endian unsigned 32-bit integer)</li>
+      </ul>
+      <p>
+        The header is followed by the payload, consisting of as many bytes as was given in the
+        payload size. MX imposes no structure whatsoever on the payload. To MX, the payload is an
+        opaque string of bytes.
+      </p>
+      <p>
+        All messages are exchanged over TCP/IP connections.
+      </p>
+    </a>
+    <a name="built_in_message_types">
+      <h3>Built-in message types</h3>
+      <p>
+        The first 10 message types (0 to 9) are used by MX itself. This section describes these
+        messages.
+      </p>
+      <p>
+        They fall into four categories:
+      </p>
+      <dl>
+        <dt>Requests</dt>
+        <dd>
+          Requests are sent by normal components to the master.
+        </dd>
+        <dt>Replies</dt>
+        <dd>
+          Replies are sent by the master to normal components as a reply to a request.
+        </dd>
+        <dt>Reports</dt>
+        <dd>
+          Reports are sent by the master to normal components to inform them of a change in the
+          message exchange.
+        </dd>
+        <dt>Updates</dt>
+        <dd>
+          Updates are sent between components (including the master) to inform each other of changes
+          in their configuration.
+        </dd>
+      </p>
+      <p>
+        All integers sent in these messages are big-endian.
+      </p>
+      <dl>
+        <a name="QuitRequest">
+          <h4>QuitRequest (type 0)</h4>
+          <img src="MsgQuitRequest.png"/>
+          <p>
+            This message type asks the master component to quit. It has type 0, version 0 and no
+            payload, so it is the simplest message type, consisting of just 12 null-bytes. If the
+            master component quits, all attached components will also quit when they see their
+            network connection to the master go down.
+          </p>
+        </a>
+        <a name="HelloRequest">
+          <h4>HelloRequest (type 1)</h4>
+          <img src="MsgHelloRequest.png"/>
+          <p>
+            This message is sent by normal components to the master to introduce themselves. It
+            contains the component's name and the port on which it can be reached (the master
+            determines the new component's IP address by looking at the connection over which this
+            message is received).
+          </p>
+        </a>
+        <a name="HelloReply">
+          <h4>HelloReply (type 2)</h4>
+          <img src="MsgHelloReply.png"/>
+          <p>
+            This message is sent by the master as a reply to a normal components <em><a
+            href="#HelloRequest">HelloRequest</a></em> message. It informs the component of the
+            name that the master is running under. For the standalone master, started using <tt>mx
+            master</tt>, this is always "master". But if another component has assumed the role of
+            master (by calling <a href="#mxMaster">mxMaster</a> instead of <a
+            href="#mxClient">mxClient</a> during setup), this may be a different name.
+          </p>
+        </a>
+        <a name="HelloReport">
+          <h4>HelloReport (type 3)</h4>
+            <img src="MsgHelloReport.png"/>
+          <p>
+            This message is sent by the master to all connected components to report a new
+            component.
+          </p>
+        </a>
+        <a name="HelloUpdate">
+          <h4>HelloUpdate (type 4)</h4>
+            <img src="MsgHelloUpdate.png"/>
+          <p>
+            This message is sent by clients after they've connected to another client to introduce
+            themselves.
+          </p>
+        </a>
+        <a name="RegisterRequest">
+          <h4>RegisterRequest (type 5)</h4>
+            <img src="MsgRegisterRequest.png"/>
+          <p>
+            This message is sent by normal components to the master to register a message type.
+          </p>
+        </a>
+        <a name="RegisterReply">
+          <h4>RegisterReply (type 6)</h4>
+            <img src="MsgRegisterReply.png"/>
+          <p>
+            This message is sent by the master to a normal component as a reply to a register
+            request.
+          </p>
+        </a>
+        <a name="RegisterReport">
+          <h4>RegisterReport (type 7)</h4>
+            <img src="MsgRegisterReport.png"/>
+          <p>
+            This message is sent from the master to a normal component to report a newly registered
+            message.
+          </p>
+        </a>
+        <a name="SubscribeUpdate">
+          <h4>SubscribeUpdate (type 8)</h4>
+            <img src="MsgSubscribeUpdate.png"/>
+          <p>
+            This message is sent between normal components to tell the recipient about a new
+            subscription by the sender.
+          </p>
+        </a>
+        <a name="CancelUpdate">
+          <h4>CancelUpdate (type 9)</h4>
+            <img src="MsgCancelUpdate.png"/>
+          <p>
+            This message is sent between normal components to tell the recipient about a cancelled
+            subscription by the sender.
+          </p>
+        </a>
+      </ol>
+    </a>
+    <a name="InitialConnection">
+      <h3>Initial connection</h3>
+    </a>
+    <img align="right" src="Connection.png"/>
+    <p>
+      This section describes how a new component is added to an existing message exchange. We'll
+      assume that we already have a master (<em>M</em>) and a component (<em>C1</em>) running.
+      These are the events that take place after our new component, <em>C2</em> is started:
+    </p>
+    <ol>
+      <li>
+        <p>
+          At some point, C2 calls the <a href="#mxClient">mxClient</a> function.
+        </p>
+        <p>
+          This function opens a listen socket, but <em>without</em> binding it to a port number. In
+          this case the operating system chooses a random free port and binds the listen socket to
+          it. The <a href="#mxClient">mxClient</a> function then connects to the master and sends
+          a <em><a href="#HelloRequest">HelloRequest</a></em> message containing the component's
+          name and the listen port number that the OS has chosen. The master stores these attributes
+          for C2, along with its host name, which it determines by looking at the
+          "peer name" of the component's TCP connection.
+        </p>
+      </li>
+      <li>
+        <p>
+          The master replies to the <em><a href="#HelloRequest">HelloRequest</a></em> message with a
+          <em><a href="#HelloReply">HelloReply</a></em> message. This contains the name that the
+          master is running under.
+        </p>
+        <p>
+          Usually, the master role will be fullfilled by the <em>mx</em> executable, and in this
+          case its name will simply be "master". But it is also possible for another component to
+          fullfill this role (by calling the <a href="#mxMaster">mxMaster</a> function instead of <a
+          href="#mxClient">mxClient</a>), and in that case it may be running under a different name.
+        </p>
+      </li>
+      <li>
+        <p>
+          For each component that the master already knows about (which is only C1 in this example),
+          it sends a <em><a href="#HelloReport">HelloReport</a></em> back to C2. These messages
+          contain the name, hostname and listen port of an existing component.
+        </p>
+      </li>
+      <li>
+        <p>
+          Next, the master sends a <em><a href="#RegisterReport">RegisterReport</a></em> message
+          to C2 for each message type that has already been registered.
+        </p>
+      </li>
+      <li>
+        <p>
+          Finally, the master sends C2 a <em><a href="#SubscribeUpdate">SubscribeUpdate</a></em>
+          message for each of its subscriptions.
+        </p>
+        <p>
+          At this point the master component considers its work done and returns to listening for
+          new connections and messages.
+        </p>
+      </li>
+    </ol>
+    <ol start="5"/>
+      <li>
+        <p>
+          For each <em><a href="#HelloReport">HelloReport</a></em> message that C2
+          receives, it connects to the existing component and sends it a <em><a
+          href="#HelloUpdate">HelloUpdate</a></em> message to introduce itself. This message
+          contains only C2's name.
+        </p>
+      </li>
+      <li>
+        <p>
+          C2 also sends the existing component a <em><a
+          href="#SubscribeUpdate">SubscribeUpdate</a></em> message for each of its subscriptions.
+        </p>
+      </li>
+      <li>
+        <p>
+          At the same time, C1 responds to the new connection by sending <em>its</em> subscriptions
+          to C2, again using <em><a href="#SubscribeUpdate">SubscribeUpdate</a></em> messages
+        </p>
+      </li>
+    </ol>
+    <p>
+      After this, C2 is fully integrated into the MX system.
+    </p>
+    <p>
+      It is worth noting that the <em><a href="#SubscribeUpdate">SubscribeUpdate</a></em> messages
+      being sent to-and-fro are not unique to the setup phase. If a component calls the <a
+      href="#mxSubscribe">mxSubscribe</a> function at any later time, the same message type is used
+      to communicate the new subscription to all other components.
+    </p>
+    <a name="RegisteringMessages">
+      <h3>Registering messages</h3>
+    </a>
+    <p>
+      Messages are identified with a <em>name</em> and a numeric message <em>type</em>. Registering
+      a message is a way to link an ASCII name (which is more convenient for the user) with an
+      integer type (which is more convenient for the system). Each name has one and only one
+      associated type, so if multiple components register messages with the same name, they are
+      guaranteed to get the same type. Messages are registered once before their first use, and are
+      then solely referenced by their type.
+    </p>
+    <p>
+      Messages are registered using the <a href="#mxRegister">mxRegister</a> function. First of all,
+      this function checks the local database to see if it already knows about the given message,
+      If so, it immediately returns the associated message type to the caller. Otherwise it sends a
+      <em><a href="#RegisterRequest">RegisterRequest</a></em> message to the master.
+    </p>
+    <p>
+      When the master receives the <em><a href="#RegisterRequest">RegisterRequest</a></em>
+      message, it checks <em>its</em> database for the given message name. If found, it retrieves
+      the associated type. Otherwise a new type is generated (simply by increasing a counter) and
+      stored in the database, along with the name. The message type is then returned to the
+      component in a <em><a href="#RegisterReply">RegisterReply</a></em> message.
+    </p>
+    <p>
+      If the master had to generate a new type it also sends all other existing components a <em><a
+      href="#RegisterReport">RegisterReport</a></em> message to inform them of the new message
+      type (this is the reason that a component might already have the message type in its local
+      database, even though no <a href="#mxRegister">mxRegister</a> call has yet been made for it).
+    </p>
+    <p>
+      When the component receives the <em><a href="#RegisterReply">RegisterReply</a></em> message
+      it stores the message's name and associated type in its database, and the <a
+      href="#mxRegister">mxRegister</a> function returns the new message type.
+    </p>
+    <p>
+      All message names are associated with a unique message type, but not all message types have to
+      have an associated message name. Components can ask the master for a unique message type that
+      <em>isn't</em> associated with a message name. They do this by calling the <a
+      href="#mxRegister">mxRegister</a> function with a <tt>NULL</tt> message name, and they will
+      get a unique message type every time. This can then be distributed to other components, and
+      used without the fear of getting message type collisions.
+    </p>
+    <a name="threads">
+      <h3>Threads</h3>
+      <img align="right" src="Threads.png"/>
+      <p>
+        This section describes the threads associated with an MX component.
+      </p>
+      <p>
+        First of all, the MX main loop runs in the application's main thread. It may consist of the
+        application repeatedly calling <a href="#mxProcessEvents">mxProcessEvents</a> whenever data
+        is available on the file descriptor returned by <a
+        href="#mxConnectionNumber">mxConnectionNumber</a>, or of the application's single call to
+        the <a href="#mxRun">mxRun</a> function, which does essentially the same.
+      </p>
+      <p>
+        In addition, a number of separate threads handle communication with the outside world. The
+        main loop sends commands (if necessary) to these threads using command queues, and they
+        report back <em>events</em> through an <em>event pipe</em> (a standard UNIX pipe). This
+        means that any event that the main loop needs to respond to comes in through a single file
+        descriptor, and it is this file descriptor that is returned by the <a
+        href="#mxConnectionNumber">mxConnectionNumber</a> function. When an event does come in, a
+        subsequent call to the <a href="#mxProcessEvents">mxProcessEvents</a> function reads it from
+        the event pipe and handles it.
+      </p>
+      <p>
+        The following threads exist:
+      </p>
+      <dl>
+        <dt>A <em>timer</em> thread.</dt>
+        <dd>
+          This thread sets up and waits for timers, as instructed by the main loop. When a timer
+          times out it sends an event back to the main loop informing it of this.
+        </dd>
+        <dt>A <em>listener</em> thread.</dt>
+        <dd>
+          This thread's sole responsibility is to listen on the message exchanges listen socket, and
+          inform the main loop of new connection requests.
+        </dd>
+      </dl>
+      <p>
+        Then, for every connection to another component there are two additional threads:
+      </p>
+      <dl>
+        <dt>A <em>reader</em> thread.</dt>
+        <dd>
+          This thread receives incoming messages from the connected component and sends them on to
+          the main loop.
+        </dd>
+        <dt>A <em>writer</em> thread.
+        <dd>
+          This thread sends messages out to the connected component, as instructed by the main loop.
+        </dd>
+      </dl>
+      <p>
+        The timer and writer threads exit when an explicit "exit" command comes in over their
+        command queue. The listener and reader threads exit when the main loop shuts down the TCP
+        sockets that they are connected to.
+      </p>
+    </a>
+  </body>
+</html>

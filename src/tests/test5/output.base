@@ -1,0 +1,6 @@
+step1 at t0 + 1.0 sec.
+step2 at t0 + 2.0 sec.
+Timer 1 timed out at t0 + 4.0 sec.
+step3 at t0 + 5.0 sec.
+step4 at t0 + 6.0 sec.
+step5 at t0 + 8.0 sec.

@@ -1,0 +1,24 @@
+Observer: Echo cancels subscription to Ping messages.
+Observer: Echo subscribes to Ping messages.
+Observer: echo_msg = 11.
+Observer: end of component Echo.
+Observer: end of component Ping.
+Observer: end of component master.
+Observer: mxRun returned 0.
+Observer: new component Echo.
+Observer: new component Ping.
+Observer: new component master.
+Observer: new message Echo, type = 11.
+Observer: new message Ping, type = 10.
+Observer: ping_msg = 10.
+Observer: received 5 pings and 5 echos.
+Observer: received Echo 1.
+Observer: received Echo 2.
+Observer: received Echo 3.
+Observer: received Echo 4.
+Observer: received Echo 5.
+Observer: received Ping 1.
+Observer: received Ping 2.
+Observer: received Ping 3.
+Observer: received Ping 4.
+Observer: received Ping 5.

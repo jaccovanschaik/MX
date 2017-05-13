@@ -1,0 +1,18 @@
+# msg.txt: MX system-level message types.
+#
+# Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
+# Version:	$Id: msg.txt 289 2016-07-11 10:46:38Z jacco $
+#
+# This software is distributed under the terms of the MIT license. See
+# http://www.opensource.org/licenses/mit-license.php for details.
+
+quit_request
+hello_request
+hello_reply
+hello_report
+hello_update
+register_request
+register_reply
+register_report
+subscribe_update
+cancel_update
