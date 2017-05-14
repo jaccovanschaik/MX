@@ -93,4 +93,4 @@ tags:
 evt.o: evt.c evt.h 
 libmx.o: libmx.c types.h libmx.h msg.h cmd.h evt.h 
 msg.o: msg.c msg.h 
-mx.o: mx.c types.h msg.h libmx.h version.h 
+mx.o: mx.c types.h msg.h cmd.h evt.h libmx.h version.h 
