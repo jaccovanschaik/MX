@@ -42,7 +42,7 @@ void handler(MX *mx, int fd, uint32_t type, uint32_t version,
 
 void on_new_subscriber(MX *mx, int fd, uint32_t type, void *udata)
 {
-P   fprintf(stderr, "on_new_subscriber: fd = %d, type = %u\n", fd, type);
+    P fprintf(stderr, "on_new_subscriber: fd = %d, type = %u\n", fd, type);
 
     printf("Observer: %s subscribes to %s messages.\n",
             mxComponentName(mx, fd), mxMessageName(mx, type));
@@ -50,7 +50,7 @@ P   fprintf(stderr, "on_new_subscriber: fd = %d, type = %u\n", fd, type);
 
 void on_end_subscriber(MX *mx, int fd, uint32_t type, void *udata)
 {
-P   fprintf(stderr, "on_end_subscriber: fd = %d, type = %u\n", fd, type);
+    P fprintf(stderr, "on_end_subscriber: fd = %d, type = %u\n", fd, type);
 
     printf("Observer: %s cancels subscription to %s messages.\n",
             mxComponentName(mx, fd), mxMessageName(mx, type));
@@ -58,14 +58,14 @@ P   fprintf(stderr, "on_end_subscriber: fd = %d, type = %u\n", fd, type);
 
 void on_new_component(MX *mx, int fd, const char *name, void *udata)
 {
-P   fprintf(stderr, "on_new_component: fd = %d, name = %s\n", fd, name);
+    P fprintf(stderr, "on_new_component: fd = %d, name = %s\n", fd, name);
 
     printf("Observer: new component %s.\n", name);
 }
 
 void on_end_component(MX *mx, int fd, const char *name, void *udata)
 {
-P   fprintf(stderr, "on_end_component: fd = %d, name = %s\n", fd, name);
+    P fprintf(stderr, "on_end_component: fd = %d, name = %s\n", fd, name);
 
     printf("Observer: end of component %s.\n", name);
 }
