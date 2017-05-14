@@ -57,8 +57,7 @@ cmd.h: cmd.txt Makefile
 	./gen_enum -h -t MX_CommandType -p MX_CT -n NUM_COMMANDS $< > $@
 
 version.h:
-	svn update
-	echo "#define VERSION \"`svnversion`\"" > version.h
+	-svn update && echo "#define VERSION \"`svnversion`\"" > version.h
 
 clean:
 	rm -f *.o libmx.a libmx.so mx core libmx.tgz version.h \
