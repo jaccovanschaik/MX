@@ -55,7 +55,7 @@
     <pre>** Documentation for MX.
 **
 ** Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
-** Version:	$Id: index.html 404 2017-02-09 14:55:34Z jacco $
+** Version:	$Id: index.html 422 2017-05-14 20:27:53Z jacco $
 **
 ** This software is distributed under the terms of the MIT license. See
 ** http://www.opensource.org/licenses/mit-license.php for details.</pre>
@@ -251,7 +251,10 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
         master component, giving the hostname where it runs and the MX name, along with the name
         under which the component itself wants to be known. Components that also want to assume the
         master role themselves should call <a href="#mxMaster">mxMaster</a> with just the
-        MX name and their own name. Note, however, that only one component can be the master.
+        MX name and their own name.
+      </dd>
+      <dd>
+        Note, however, that only one component can be the master.
       </dd>
       <dt>
         Register the message types you're interested in using <a href="#mxRegister">mxRegister</a>.
@@ -352,8 +355,9 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
         <div class="func">MX *mxMaster(const char *mx_name, const char *my_name)</div>
       </p>
       <p>
-        Start a new message exchange with MX name <span class="parameter">mx_name</span>. Returns a
-        new MX struct that can henceforth be used as a regular component.
+        Start a new message exchange with MX name <span class="parameter">mx_name</span>. The new MX
+        struct that is returned can be used as if it were a regular component. In the background,
+        however, this component will also perform the duties of a master component.
       </p>
     </a>
     <a name="mxMyName">
@@ -664,10 +668,11 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
       </p>
       <p>
         Create a timer that will call <span class="parameter">handler</span> at time <span
-        class="parameter">t</span> (seconds since the UNIX epoch). In future calls to mxAdjustTimer
-        and mxRemoveTimer this timer will be identified by <span class="parameter">id</span>. When
-        calling <span class="parameter">handler</span>, the same pointer <span
-        class="parameter">udata</span> given here will be passed back.
+        class="parameter">t</span> (seconds since the UNIX epoch). In future calls to <a
+        href="#mxAdjustTimer">mxAdjustTimer</a> and <a href="#mxRemoveTimer">mxRemoveTimer</a> this
+        timer will be identified by <span class="parameter">id</span>. When calling <span
+        class="parameter">handler</span>, the same pointer <span class="parameter">udata</span>
+        given here will be passed back.
       </p>
     </a>
     <a name="mxAdjustTimer">
