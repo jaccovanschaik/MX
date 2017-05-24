@@ -1,4 +1,4 @@
-# mx
+# MX
 
 ## Introduction
 
