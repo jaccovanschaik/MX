@@ -2,7 +2,7 @@
  *
  * Copyright: (c) 2016 Jacco van Schaik (jacco@jaccovanschaik.net)
  * Created:   2016-07-06
- * Version:   $Id: pymx.c 416 2017-05-13 14:30:32Z jacco $
+ * Version:   $Id: pymx.c 423 2017-05-24 20:20:07Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
