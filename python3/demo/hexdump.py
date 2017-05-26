@@ -7,10 +7,10 @@
   Author:	Jacco van Schaik (jacco.van.schaik@dnw.aero)
   Copyright:	(c) 2011 DNW German-Dutch Windtunnels
   Created:	2011-03-09
-  Version:	$Id: hexdump.py 775 2016-12-09 21:29:20Z jacco $
+  Version:	$Id: hexdump.py 426 2017-05-26 11:03:08Z jacco $
 '''
 
-__version__ = '$Revision: 775 $'
+__version__ = '$Revision: 426 $'
 
 def hexdump(buf, fd = None, indent = 0):
   '''

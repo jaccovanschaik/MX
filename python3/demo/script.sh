@@ -5,7 +5,7 @@
 # Author:    Jacco van Schaik (jacco.van.schaik@dnw.aero)
 # Copyright: (c) 2016 DNW German-Dutch Windtunnels
 # Created:   2016-08-04
-# Version:   $Id: script.sh 413 2017-04-04 20:02:22Z jacco $
+# Version:   $Id: script.sh 426 2017-05-26 11:03:08Z jacco $
 
 mx master -d
 

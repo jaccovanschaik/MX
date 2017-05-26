@@ -6,7 +6,7 @@
 
   Copyright: (c) 2016 Jacco van Schaik (jacco@jaccovanschaik.net)
   Created:   2016-08-03
-  Version:   $Id: Messages.py 409 2017-04-04 10:20:06Z jacco $
+  Version:   $Id: Messages.py 426 2017-05-26 11:03:08Z jacco $
 
   This software is distributed under the terms of the MIT license. See
   http://www.opensource.org/licenses/mit-license.php for details.

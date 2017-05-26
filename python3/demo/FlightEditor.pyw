@@ -6,7 +6,7 @@
 
   Copyright: (c) 2016 Jacco van Schaik (jacco@jaccovanschaik.net)
   Created:   2016-08-03
-  Version:   $Id: FlightEditor.pyw 410 2017-04-04 19:54:23Z jacco $
+  Version:   $Id: FlightEditor.pyw 426 2017-05-26 11:03:08Z jacco $
 
   This software is distributed under the terms of the MIT license. See
   http://www.opensource.org/licenses/mit-license.php for details.
