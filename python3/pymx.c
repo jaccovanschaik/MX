@@ -2,7 +2,7 @@
  *
  * Copyright: (c) 2016 Jacco van Schaik (jacco@jaccovanschaik.net)
  * Created:   2016-07-06
- * Version:   $Id: pymx.c 423 2017-05-24 20:20:07Z jacco $
+ * Version:   $Id: pymx.c 425 2017-05-26 11:01:02Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
@@ -254,13 +254,14 @@ void subscribe_cb(MX *mx, int fd, uint32_t type, uint32_t version,
 {
     PyObject *r;
     PyObject *handler = udata;
-    PyObject *arglist = Py_BuildValue("(iIIs#)", fd, type, version, payload, size);
+    PyObject *arglist = Py_BuildValue("(iIIy#)", fd, type, version, payload, size);
 
     free(payload);
 
     r = PyObject_CallObject(handler, arglist);
 
     if (r == NULL) {
+        printf("PyObject_CallObject returned NULL\n");
         PyErr_Print();
     }
     else {
@@ -524,7 +525,7 @@ static PyObject *MX_Send(MXObject *self,
     char *payload;
     int size;
 
-    if (PyArg_ParseTupleAndKeywords(args, kwds, "iIIs#:send",
+    if (PyArg_ParseTupleAndKeywords(args, kwds, "iIIy#:send",
                 kwlist, &fd, &msg_type, &msg_version, &payload, &size) == 0) {
         return NULL;
     }
@@ -544,7 +545,7 @@ static PyObject *MX_Broadcast(MXObject *self,
     char *payload;
     int size;
 
-    if (PyArg_ParseTupleAndKeywords(args, kwds, "IIs#:broadcast",
+    if (PyArg_ParseTupleAndKeywords(args, kwds, "IIy#:broadcast",
                 kwlist, &msg_type, &msg_version, &payload, &size) == 0) {
         return NULL;
     }
@@ -579,7 +580,7 @@ static PyObject *MX_Await(MXObject *self,
 
     r = mxAwait(self->mx, fd, timeout, type, &version, &payload, &size);
 
-    result = Py_BuildValue("(iIs#)", r, version, payload, size);
+    result = Py_BuildValue("(iIy#)", r, version, payload, size);
 
     return result;
 }
@@ -607,7 +608,7 @@ static PyObject *MX_SendAndWait(MXObject *self,
     char *request_payload = NULL, *reply_payload = NULL;
     uint32_t request_size = 0, reply_size = 0;
 
-    if (PyArg_ParseTupleAndKeywords(args, kwds, "idIIIs#:sendAndAwait",
+    if (PyArg_ParseTupleAndKeywords(args, kwds, "idIIIy#:sendAndAwait",
                 kwlist, &fd, &timeout, &reply_type, &request_type,
                 &request_version, &request_payload, &request_size) == 0) {
         return NULL;
@@ -617,7 +618,7 @@ static PyObject *MX_SendAndWait(MXObject *self,
             reply_type, &reply_version, &reply_payload, &reply_size,
             request_type, request_version, request_payload, request_size);
 
-    result = Py_BuildValue("(iIs#)", r, reply_version, reply_payload, reply_size);
+    result = Py_BuildValue("(iIy#)", r, reply_version, reply_payload, reply_size);
 
     return result;
 }
