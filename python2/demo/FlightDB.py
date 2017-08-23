@@ -6,7 +6,7 @@
 
   Copyright: (c) 2016 Jacco van Schaik (jacco@jaccovanschaik.net)
   Created:   2016-08-03
-  Version:   $Id: FlightDB.py 409 2017-04-04 10:20:06Z jacco $
+  Version:   $Id: FlightDB.py 433 2017-08-23 13:12:15Z jacco $
 
   This software is distributed under the terms of the MIT license. See
   http://www.opensource.org/licenses/mit-license.php for details.
@@ -55,14 +55,6 @@ class FlightDB(object):
 
     self._mx.onNewSubscriber(self._flight_created_msg, self._new_subscriber_handler)
 
-  def _next_ident(self):
-    ''' Get the next ident for a new Flight. '''
-
-    if not self._flights.keys():
-      return 0
-    else:
-      return max(self._flights.keys()) + 1
-
   def _create_flight_handler(self, fd, msg_type, msg_version, payload):
     ''' Handle a "CreateFlight" message. '''
 
@@ -99,7 +91,7 @@ class FlightDB(object):
 
     self._flights[ident].update(callsign, kind, time, city, gate, remarks)
 
-    # ... and if it actually changed send out the update to all "FlightUpdated" subscribers,
+    # ... and send out the update to all "FlightUpdated" subscribers,
 
     payload = FlightUpdatedMessage.pack(ident, callsign, kind, time, city, gate, remarks)
 
@@ -110,9 +102,7 @@ class FlightDB(object):
 
     # Get the ident of the flight they want us to delete.
 
-    args = list(DeleteFlightMessage.unpack(payload))
-
-    ident = args[0]
+    ident, = DeleteFlightMessage.unpack(payload)
 
     # Delete it...
 
@@ -136,6 +126,14 @@ class FlightDB(object):
           flight.callsign, flight.kind, flight.time, flight.city, flight.gate, flight.remarks)
 
       self._mx.send(fd, self._flight_created_msg, 0, payload)
+
+  def _next_ident(self):
+    ''' Get the next ident for a new Flight. '''
+
+    if not self._flights.keys():
+      return 0
+    else:
+      return max(self._flights.keys()) + 1
 
   def run(self):
     ''' Run this MX component. '''

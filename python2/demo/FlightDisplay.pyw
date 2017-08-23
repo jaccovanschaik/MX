@@ -9,7 +9,7 @@
 
   Copyright: (c) 2016 Jacco van Schaik (jacco@jaccovanschaik.net)
   Created:   2016-08-03
-  Version:   $Id: FlightDisplay.pyw 409 2017-04-04 10:20:06Z jacco $
+  Version:   $Id: FlightDisplay.pyw 433 2017-08-23 13:12:15Z jacco $
 
   This software is distributed under the terms of the MIT license. See
   http://www.opensource.org/licenses/mit-license.php for details.
@@ -113,9 +113,7 @@ class FlightDisplay(QApplication):
   def _flight_deleted_handler(self, fd, msg_type, msg_version, payload):
     ''' Handle a "FlightDeleted" message. '''
 
-    args = list(FlightDeletedMessage.unpack(payload))
-
-    ident = args[0]
+    ident, = FlightDeletedMessage.unpack(payload)
 
     del self._flights[ident]
 
@@ -142,8 +140,7 @@ class FlightDisplay(QApplication):
 
     self._ui.table.setRowCount(0)
 
-    ordered_idents = self._flights.keys()
-    ordered_idents.sort(self._compare_flights)
+    ordered_idents = sorted(self._flights.keys(), self._compare_flights)
 
     row = -1
 
