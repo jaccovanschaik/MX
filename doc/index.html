@@ -55,7 +55,7 @@
     <pre>** Documentation for MX.
 **
 ** Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
-** Version:	$Id: index.html 422 2017-05-14 20:27:53Z jacco $
+** Version:	$Id: index.html 434 2017-09-12 19:33:37Z jacco $
 **
 ** This software is distributed under the terms of the MIT license. See
 ** http://www.opensource.org/licenses/mit-license.php for details.</pre>
@@ -92,12 +92,12 @@
           failure but will not try to restart the failed component, for example.
         </p>
         <p>
-          Also, the master component constitutes a single point of failure. If it crashes or is
-          killed all other participating components will also exit. This should not be a big problem
-          for a standalone master (started using <tt>mx master</tt>) because it is fairly robust,
-          but if another component assumes the master role (see the
-          <a href="#mxMaster">mxMaster</a> function) and it quits or crashes, all other
-          participating components will exit too.
+          Also, the master component constitutes an obvious single point of failure. If it crashes 
+          or is killed all other participating components will also exit. This should not be a big 
+          problem for a standalone master (started using <tt>mx master</tt>) because it is fairly 
+          robust, but if another component assumes the master role (see the <a 
+          href="#mxMaster">mxMaster</a> function) and it quits or crashes, all other participating 
+          components will exit too.
         </p>
       </li>
       <li>
