@@ -6,7 +6,7 @@
 
   Copyright: (c) 2016 Jacco van Schaik (jacco@jaccovanschaik.net)
   Created:   2016-08-03
-  Version:   $Id: Pack.py 426 2017-05-26 11:03:08Z jacco $
+  Version:   $Id: Pack.py 435 2018-10-05 17:23:27Z jacco $
 
   This software is distributed under the terms of the MIT license. See
   http://www.opensource.org/licenses/mit-license.php for details.
@@ -60,7 +60,8 @@ class Pack(object):
       value = args[index + 1]
 
       if spec == Pack.STRING:
-        buf += struct.pack('>I', len(value)) + value.encode('utf-8')
+        raw = bytes(value.encode('utf-8'))
+        buf += struct.pack('>I', len(raw)) + raw
         index += 2
       elif spec in Pack._items:
         buf += struct.pack('>' + Pack._items[spec]['fmt'], value)
