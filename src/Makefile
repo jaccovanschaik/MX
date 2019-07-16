@@ -1,7 +1,7 @@
 # Makefile.
 #
 # Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
-# Version:	$Id: Makefile 437 2019-07-16 18:03:51Z jacco $
+# Version:	$Id: Makefile 440 2019-07-16 18:58:47Z jacco $
 #
 # This software is distributed under the terms of the MIT license. See
 # http://www.opensource.org/licenses/mit-license.php for details.
@@ -61,7 +61,7 @@ version.h:
 
 clean:
 	rm -f *.o libmx.a libmx.so mx core libmx.tgz version.h \
-            msg.[ch] evt.[ch] cmd.[ch] *.log tags
+            msg.[ch] evt.[ch] cmd.[ch] *.log tags $(CLEAN)
 
 test: mx libmx.a $(TESTS)
 
