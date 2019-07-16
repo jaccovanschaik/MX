@@ -2,37 +2,24 @@
  *
  * Copyright: (c) 2016 Jacco van Schaik (jacco@jaccovanschaik.net)
  * Created:   2016-07-06
- * Version:   $Id: pymx.c 425 2017-05-26 11:01:02Z jacco $
+ * Version:   $Id: pymx.c 438 2019-07-16 18:51:26Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
  */
 
 #include "../src/libmx.h"
-#include <libjvs/log.h>
 
 #include <Python.h>
 #include <structmember.h>
-
-// #define LOG
 
 typedef struct {
     PyObject_HEAD
     MX *mx;
 } MXObject;
 
-Logger *logger = NULL;
-
-#ifdef LOG
-#define L if (1)
-#else
-#define L if (0)
-#endif
-
 static void MX_Dealloc(MXObject *self)
 {
-    L logWrite(logger, "%s started.\n", __func__);
-
     if (self->mx != NULL) {
         mxShutdown(self->mx);
         mxDestroy(self->mx);
@@ -41,8 +28,6 @@ static void MX_Dealloc(MXObject *self)
     }
 
     Py_TYPE(self)->tp_free((PyObject*) self);
-
-    L logWrite(logger, "%s ended.\n", __func__);
 }
 
 static int MX_Init(MXObject *self, PyObject *args, PyObject *kwds)
@@ -73,22 +58,12 @@ static int MX_Init(MXObject *self, PyObject *args, PyObject *kwds)
         return -1;
     }
 
-    logger = logCreate();
-
-    L logToFile(logger, "%s-pymx.log", my_name);
-    L logToFP(logger, stderr);
-    L logWithTime(logger, 6);
-    L logWithString(logger, "%s.pymx", my_name);
-    L logWithFunction(logger);
-
     if (self->mx == NULL) {
         char *error = mxError();
         PyErr_SetString(PyExc_IOError, error);
         free(error);
         return -1;
     }
-
-    L logWrite(logger, "MX_Init done.\n");
 
     return 0;
 }
@@ -174,8 +149,6 @@ static PyObject *MX_Name(MXObject *self)
 static PyObject *MX_Host(MXObject *self)
 {
     PyObject *result;
-
-    L logWrite(logger, "MX_Host: %s\n", mxHost(self->mx));
 
     result = PyUnicode_FromString(mxHost(self->mx));
 
@@ -317,8 +290,6 @@ static void on_subscriber_cb(MX *mx, int fd, uint32_t msg_type, void *udata)
     PyObject *handler = udata;
     PyObject *arglist = Py_BuildValue("(iI)", fd, msg_type);
 
-    L logWrite(logger, "fd = %d, msg_type = %u\n", fd, msg_type);
-
     r = PyObject_CallObject(handler, arglist);
 
     if (r == NULL) {
@@ -341,8 +312,6 @@ static PyObject *MX_OnNewSubscriber(MXObject *self,
     static char *kwlist[] = {"msg_type", "handler", NULL};
     uint32_t msg_type = 0;
     PyObject *handler;
-
-    L logWrite(logger, "refcount(self) = %lu\n", self->ob_base.ob_refcnt);
 
     if (PyArg_ParseTupleAndKeywords(args, kwds, "IO:onNewSubscriber",
                 kwlist, &msg_type, &handler) == 0) {
@@ -371,8 +340,6 @@ static PyObject *MX_OnEndSubscriber(MXObject *self,
     uint32_t msg_type = 0;
     PyObject *handler;
 
-    L logWrite(logger, "refcount(self) = %lu\n", self->ob_base.ob_refcnt);
-
     if (PyArg_ParseTupleAndKeywords(args, kwds, "IO:onNewSubscriber",
                 kwlist, &msg_type, &handler) == 0) {
         return NULL;
@@ -395,8 +362,6 @@ static void on_component_cb(MX *mx, int fd, const char *name, void *udata)
     PyObject *handler = udata;
     PyObject *arglist = Py_BuildValue("(is)", fd, name);
 
-    L logWrite(logger, "fd = %d, name = \"%s\"\n", fd, name);
-
     r = PyObject_CallObject(handler, arglist);
 
     if (r == NULL) {
@@ -418,8 +383,6 @@ static PyObject *MX_OnNewComponent(MXObject *self,
 {
     static char *kwlist[] = {"handler", NULL};
     PyObject *handler;
-
-    L logWrite(logger, "refcount(self) = %lu\n", self->ob_base.ob_refcnt);
 
     if (PyArg_ParseTupleAndKeywords(args, kwds, "O:onNewComponent",
                 kwlist, &handler) == 0) {
@@ -447,8 +410,6 @@ static PyObject *MX_OnEndComponent(MXObject *self,
     static char *kwlist[] = {"handler", NULL};
     PyObject *handler;
 
-    L logWrite(logger, "refcount(self) = %lu\n", self->ob_base.ob_refcnt);
-
     if (PyArg_ParseTupleAndKeywords(args, kwds, "O:onEndComponent",
                 kwlist, &handler) == 0) {
         return NULL;
@@ -472,8 +433,6 @@ static void on_new_message_cb(MX *mx,
     PyObject *handler = udata;
     PyObject *arglist = Py_BuildValue("(Is)", type, name);
 
-    L logWrite(logger, "type = %d, name = \"%s\"\n", type, name);
-
     r = PyObject_CallObject(handler, arglist);
 
     if (r == NULL) {
@@ -495,8 +454,6 @@ static PyObject *MX_OnNewMessage(MXObject *self,
 {
     static char *kwlist[] = {"handler", NULL};
     PyObject *handler;
-
-    L logWrite(logger, "refcount(self) = %lu\n", self->ob_base.ob_refcnt);
 
     if (PyArg_ParseTupleAndKeywords(args, kwds, "O:onNewMessage",
                 kwlist, &handler) == 0) {
@@ -549,9 +506,6 @@ static PyObject *MX_Broadcast(MXObject *self,
                 kwlist, &msg_type, &msg_version, &payload, &size) == 0) {
         return NULL;
     }
-
-    L logWrite(logger, "msg_type = %u, msg_version = %u, payload size = %u\n",
-            msg_type, msg_version, size);
 
     mxBroadcast(self->mx, msg_type, msg_version, payload, size);
 
@@ -654,8 +608,6 @@ static PyObject *MX_CreateTimer(MXObject *self,
     double time;
     PyObject *handler;
 
-    L logWrite(logger, "refcount(self) = %lu\n", self->ob_base.ob_refcnt);
-
     if (PyArg_ParseTupleAndKeywords(args, kwds, "IdO:createTimer",
                 kwlist, &id, &time, &handler) == 0) {
         return NULL;
@@ -680,8 +632,6 @@ static PyObject *MX_AdjustTimer(MXObject *self,
     uint32_t id;
     double time;
 
-    L logWrite(logger, "refcount(self) = %lu\n", self->ob_base.ob_refcnt);
-
     if (PyArg_ParseTupleAndKeywords(args, kwds, "Id:adjustTimer",
                 kwlist, &id, &time) == 0) {
         return NULL;
@@ -698,8 +648,6 @@ static PyObject *MX_RemoveTimer(MXObject *self,
 {
     static char *kwlist[] = {"id", NULL};
     uint32_t id;
-
-    L logWrite(logger, "refcount(self) = %lu\n", self->ob_base.ob_refcnt);
 
     if (PyArg_ParseTupleAndKeywords(args, kwds, "I:removeTimer",
                 kwlist, &id) == 0) {
@@ -740,8 +688,6 @@ static PyObject *MX_Run(MXObject *self,
     PyObject *result;
 
     int r = mxRun(self->mx);
-
-    L logWrite(logger, "%s: mxRun returned %d\n", __func__, r);
 
     result = PyLong_FromLong(r);
 

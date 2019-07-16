@@ -2,7 +2,7 @@
  * libmx.c: Main interface to libmx.
  *
  * Copyright: (c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:   $Id: libmx.c 412 2017-04-04 20:01:54Z jacco $
+ * Version:   $Id: libmx.c 438 2019-07-16 18:51:26Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
@@ -39,14 +39,6 @@
 
 #define MIN_PORT 1024
 #define MAX_PORT 65535
-
-#define LOGGER 0
-
-#if LOGGER == 1
-#define LOG(logger, ...) logWrite(logger, __VA_ARGS__)
-#else
-#define LOG(logger, ...)
-#endif
 
 static Buffer msg_buffer = { 0 };
 
@@ -94,41 +86,6 @@ static void mx_notice(char *fmt, ...)
     va_start(ap, fmt);
     mx_message(MX_NOTICE, fmt, ap);
     va_end(ap);
-}
-
-/*
- * Create a logger. It will add a string to its output that is given by <fmt> and
- * the subsequent parameters. The same name, with an added suffix ".log" will be
- * used as the output file.
- */
-__attribute__ ((format (printf, 1, 2)))
-static Logger *mx_create_logger(const char *fmt, ...)
-{
-#if LOGGER == 1
-    va_list ap;
-    Buffer name = { 0 };
-
-    Logger *logger = logCreate();
-
-    va_start(ap, fmt);
-    bufSetV(&name, fmt, ap);
-    va_end(ap);
-
-    logToFile(logger, "%s.log", bufGet(&name));
-    logWithTime(logger, 6);
-    logWithString(logger, "%s", bufGet(&name));
-    logWithFunction(logger);
-    logWithString(logger, "@");
-    logWithFile(logger);
-    logWithString(logger, ":");
-    logWithLine(logger);
-
-    bufReset(&name);
-
-    return logger;
-#else
-    return NULL;
-#endif
 }
 
 /*
@@ -417,7 +374,7 @@ static MX_Await *mx_add_await(MX_Component *comp, uint32_t type)
  * If successful, <reply_payload> points to a newly allocated memory buffer. It
  * is the caller's responsibility to free it when it is no longer needed.
  */
-static int mx_send_and_wait(MX_Component *comp, Logger *logger, double timeout,
+static int mx_send_and_wait(MX_Component *comp, double timeout,
         uint32_t reply_type, uint32_t *reply_version,
         char **reply_payload, uint32_t *reply_size,
         uint32_t request_type, uint32_t request_version,
@@ -437,30 +394,11 @@ static int mx_send_and_wait(MX_Component *comp, Logger *logger, double timeout,
 
     /* Send the request that we expect an answer to. */
 
-    LOG(logger, "sending message to %s on fd %d:\n", comp->name, comp->fd);
-
-#if LOGGER == 1
-    int offset, size = request_size;
-    const char *data = request_payload;
-
-    for (offset = 0; offset < size; offset += 16) {
-        char *str;
-        hexstr(&str, data + offset,
-                MIN(16, size - offset));
-        LOG(logger, "%s", str);
-        free(str);
-    }
-#endif
-
     mx_send(comp, request_type, request_version, request_payload, request_size);
 
     /* Now wait until the reader thread unlocks the created mutex. */
 
-    LOG(logger, "calling pthread_mutex_timedlock.\n");
-
     r = pthread_mutex_timedlock(&await->mutex, &deadline);
-
-    LOG(logger, "pthread_mutex_timedlock returned %d.\n", r);
 
     if (r == 0) {
         /* Reader thread unlocked the mutex (and removed the await struct from
@@ -486,15 +424,12 @@ static int mx_send_and_wait(MX_Component *comp, Logger *logger, double timeout,
 
     /* Set the appropriate return value. */
     if (r == 0) {
-        LOG(logger, "received message in time.\n");
         return 0;
     }
     else if (r == ETIMEDOUT) {
-        LOG(logger, "timed out.\n");
         return 1;
     }
     else {
-        LOG(logger, "error.\n");
         return -1;
     }
 }
@@ -511,7 +446,7 @@ static int mx_send_and_wait(MX_Component *comp, Logger *logger, double timeout,
  * If successful, <reply_payload> points to a newly allocated memory buffer. It
  * is the caller's responsibility to free it when it is no longer needed.
  */
-static int mx_va_pack_and_wait(MX_Component *comp, Logger *logger, double timeout,
+static int mx_va_pack_and_wait(MX_Component *comp, double timeout,
         uint32_t reply_type, uint32_t *reply_version,
         char **reply_payload, uint32_t *reply_size,
         uint32_t request_type, uint32_t request_version, va_list ap)
@@ -520,7 +455,7 @@ static int mx_va_pack_and_wait(MX_Component *comp, Logger *logger, double timeou
     char *payload;
     uint32_t size = vastrpack(&payload, ap);
 
-    r = mx_send_and_wait(comp, logger, timeout,
+    r = mx_send_and_wait(comp, timeout,
             reply_type, reply_version, reply_payload, reply_size,
             request_type, request_version, payload, size);
 
@@ -541,7 +476,7 @@ static int mx_va_pack_and_wait(MX_Component *comp, Logger *logger, double timeou
  * If successful, <reply_payload> points to a newly allocated memory buffer. It
  * is the caller's responsibility to free it when it is no longer needed.
  */
-static int mx_pack_and_wait(MX_Component *comp, Logger *logger, double timeout,
+static int mx_pack_and_wait(MX_Component *comp, double timeout,
         uint32_t reply_type, uint32_t *reply_version,
         char **reply_payload, uint32_t *reply_size,
         uint32_t request_type, uint32_t request_version, ...)
@@ -550,7 +485,7 @@ static int mx_pack_and_wait(MX_Component *comp, Logger *logger, double timeout,
     va_list ap;
 
     va_start(ap, request_version);
-    r = mx_va_pack_and_wait(comp, logger, timeout,
+    r = mx_va_pack_and_wait(comp, timeout,
             reply_type, reply_version, reply_payload, reply_size,
             request_type, request_version, ap);
     va_end(ap);
@@ -613,22 +548,12 @@ static void *mx_listener_thread(void *arg)
 
     MX *mx = arg;
 
-#if LOGGER == 1
-    Logger *logger = mx_create_logger("%s-listener", mx->me->name);
-#endif
-
     /* Listen for components on listen_fd and report new connections via the
      * event_pipe. */
 
     while ((new_fd = tcpAccept(mx->listen_fd)) > 0) {
-        LOG(logger, "sending connect event (new_fd = %d).\n", new_fd);
-
         mx_send_pointer(mx->event_pipe[WR], mx_connect_event(new_fd));
     }
-
-#if LOGGER == 1
-    logClose(logger);
-#endif
 
     return NULL;
 }
@@ -658,8 +583,6 @@ static int mx_start_listener_thread(MX *mx)
 {
     int r;
 
-    LOG(mx->logger, "starting listener thread.\n");
-
     r = pthread_create(&mx->listener_thread, NULL, mx_listener_thread, mx);
 
     if (r != 0) {
@@ -676,19 +599,12 @@ static int mx_start_listener_thread(MX *mx)
 static void mx_stop_listener_thread(MX *mx)
 {
     if (mx->listener_thread == 0) {
-        LOG(mx->logger, "listener thread already stopped\n");
         return;
     }
 
-    LOG(mx->logger, "calling shutdown on listen_fd %d\n", mx->listen_fd);
-
     shutdown(mx->listen_fd, SHUT_RDWR);
 
-    LOG(mx->logger, "joining listener thread\n");
-
     pthread_join(mx->listener_thread, NULL);
-
-    LOG(mx->logger, "listener thread terminated\n");
 
     mx->listener_thread = 0;
 }
@@ -752,44 +668,25 @@ static void *mx_timer_thread(void *arg)
 
     double *deadline_ptr;
 
-#if LOGGER == 1
-    Logger *logger = mx_create_logger("%s-timer", mx->me->name);
-#endif
-
-    LOG(logger, "mx_timer_thread started\n");
-
     /* Wait for timer commands on the timer_queue. */
 
     while (1) {
         timer = listHead(&mx->timers);
 
         if (timer == NULL) {
-            LOG(logger, "no active timers.\n");
-
             deadline_ptr = NULL;
         }
         else if (timer->t == DBL_MAX) {
-            LOG(logger, "first timer at infinity.\n");
-
             deadline_ptr = NULL;
         }
         else {
-            LOG(logger, "First timeout in %g seconds.\n", timer->t - mxNow());
-
             deadline_ptr = &timer->t;
         }
 
-        LOG(logger, "calling mx_pop_command with deadline at %p.\n", deadline_ptr);
-
         MX_Command *cmd = mx_pop_command(&mx->timer_queue, deadline_ptr);
-
-        LOG(logger, "mx_pop_command %s.\n",
-                cmd ? "returned a command" : "timed out");
 
         if (cmd == NULL) {
             if (errno == ETIMEDOUT) {
-                LOG(logger, "active timer expired. Calling handler.\n");
-
                 listRemove(&mx->timers, timer);
 
                 mx_send_pointer(mx->event_pipe[WR],
@@ -798,16 +695,12 @@ static void *mx_timer_thread(void *arg)
                 free(timer);
             }
             else {
-                LOG(logger, "an error occurred (errno = %d). Sending error event.\n", errno);
-
                 mx_send_pointer(mx->event_pipe[WR],
                         mx_error_event(-1, "mx_pop_command", errno));
                 break;
             }
         }
         else if (cmd->cmd_type == MX_CT_TIMER_CREATE) {
-            LOG(logger, "received a timer_create command.\n");
-
             /* New timer on timer_pipe. Add it and re-sort. */
 
             if (mx_find_timer(mx, cmd->u.timer_create.id) == NULL) {
@@ -825,8 +718,6 @@ static void *mx_timer_thread(void *arg)
             free(cmd);
         }
         else if (cmd->cmd_type == MX_CT_TIMER_ADJUST) {
-            LOG(logger, "received a timer_adjust command.\n");
-
             MX_Timer *existing_timer = mx_find_timer(mx, cmd->u.timer_adjust.id);
 
             if (existing_timer != NULL) {
@@ -841,8 +732,6 @@ static void *mx_timer_thread(void *arg)
             free(cmd);
         }
         else if (cmd->cmd_type == MX_CT_TIMER_DELETE) {
-            LOG(logger, "received a timer_delete command.\n");
-
             MX_Timer *existing_timer = mx_find_timer(mx, cmd->u.timer_delete.id);
 
             if (existing_timer != NULL) {
@@ -858,20 +747,13 @@ static void *mx_timer_thread(void *arg)
             free(cmd);
         }
         else if (cmd->cmd_type == MX_CT_EXIT) {
-            LOG(logger, "received an exit command. Exiting.\n");
-
             free(cmd);
 
             break;
         }
         else {
-            LOG(logger, "received an unexpected command.\n");
-            LOG(logger, "sending error event with errno %d.\n", EINVAL);
-
             mx_send_pointer(mx->event_pipe[WR],
                         mx_error_event(-1, "read", EINVAL));
-
-            LOG(logger, "exiting.\n");
 
             free(cmd);
 
@@ -883,18 +765,12 @@ static void *mx_timer_thread(void *arg)
         free(timer);
     }
 
-#if LOGGER == 1
-    logClose(logger);
-#endif
-
     return NULL;
 }
 
 static int mx_start_timer_thread(MX *mx)
 {
     int r;
-
-    LOG(mx->logger, "starting timer_thread.\n");
 
     r = pthread_create(&mx->timer_thread, NULL, mx_timer_thread, mx);
 
@@ -909,21 +785,14 @@ static int mx_start_timer_thread(MX *mx)
 static void mx_stop_timer_thread(MX *mx)
 {
     if (mx->timer_thread == 0) {
-        LOG(mx->logger, "timer_thread already stopped\n");
         return;
     }
 
     MX_Command *cmd = mx_create_exit_command();
 
-    LOG(mx->logger, "sending exit command\n");
-
     mx_push_command(&mx->timer_queue, cmd);
 
-    LOG(mx->logger, "joining timer_thread\n");
-
     pthread_join(mx->timer_thread, NULL);
-
-    LOG(mx->logger, "timer thread terminated\n");
 
     mx->timer_thread = 0;
 }
@@ -932,25 +801,9 @@ static void mx_stop_timer_thread(MX *mx)
  * We have incoming data on component <comp>; it is <size> bytes long and is
  * contained in <data>. Process it.
  */
-static void mx_handle_incoming(MX_Component *comp, const char *data, int size,
-        Logger *logger)
+static void mx_handle_incoming(MX_Component *comp, const char *data, int size)
 {
     bufAdd(&comp->incoming, data, size);
-
-    LOG(logger, "Received %d bytes from %s on fd %d:\n",
-            size, comp->name, comp->fd);
-
-#if LOGGER == 1
-    int offset;
-
-    for (offset = 0; offset < size; offset += 16) {
-        char *str;
-        hexstr(&str, data + offset,
-                MIN(16, size - offset));
-        LOG(logger, "%s", str);
-        free(str);
-    }
-#endif
 
     while (bufLen(&comp->incoming) >= HEADER_SIZE) {
         MX_Await *await;
@@ -960,18 +813,13 @@ static void mx_handle_incoming(MX_Component *comp, const char *data, int size,
         uint32_t size;
         char *payload;
 
-        LOG(logger, "%d bytes remaining.\n", bufLen(&comp->incoming));
-
         strunpack(bufGet(&comp->incoming), bufLen(&comp->incoming),
                 PACK_INT32, &type,
                 PACK_INT32, &version,
                 PACK_INT32, &size,
                 END);
 
-        LOG(logger, "Found a %s message.\n", mxMessageName(comp->mx, type));
-
         if (bufLen(&comp->incoming) < HEADER_SIZE + size) {
-            LOG(logger, "Incomplete message.\n");
             break;
         }
 
@@ -994,21 +842,13 @@ static void mx_handle_incoming(MX_Component *comp, const char *data, int size,
         pthread_rwlock_unlock(&comp->await_lock);
 
         if (await != NULL) {            /* Someone is waiting! Pop the lock. */
-            LOG(logger, "This message has an await.\n");
-
             await->version = version;
             await->payload = payload;
             await->size = size;
 
-            LOG(logger, "Unlocking mutex.\n");
-
             pthread_mutex_unlock(&await->mutex);
         }
         else {                          /* No-one waiting: deliver normally. */
-            LOG(logger, "No awaits for this message.\n");
-
-            LOG(logger, "Sending message event.\n");
-
             mx_send_pointer(comp->mx->event_pipe[WR],
                     mx_message_event(comp->fd, type, version, payload, size));
         }
@@ -1026,42 +866,26 @@ static void *mx_reader_thread(void *arg)
     /* Listen for external data on comp->fd, exit when the compection on the
      * reader_pipe is lost. */
 
-    Logger *logger = mx_create_logger("%s-reader-%d", comp->mx->me->name, comp->fd);
-
-#if LOGGER == 1
-    LOG(logger, "-> %s: mx_reader_thread started\n", comp->name);
-#endif
-
     while (1) {
         char data[9000];
-
-        LOG(logger, "calling read\n");
 
         int r = read(comp->fd, data, sizeof(data));
 
         if (r == 0) {               /* Lost connection. */
-            LOG(logger, "lost connection\n");
-
             mx_send_pointer(comp->mx->event_pipe[WR],
                     mx_disc_event(comp->fd, "read"));
 
             break;
         }
         else if (r < 0) {
-            LOG(logger, "read error: %s\n", strerror(errno));
-
             mx_send_pointer(comp->mx->event_pipe[WR],
                     mx_error_event(comp->fd, "read", errno));
             break;
         }
         else {                      /* Incoming data: handle it. */
-            mx_handle_incoming(comp, data, r, logger);
+            mx_handle_incoming(comp, data, r);
         }
     }
-
-    LOG(logger, "mx_reader_thread for fd %d (%s) exiting.\n", comp->fd, comp->name);
-
-    logClose(logger);
 
     return NULL;
 }
@@ -1069,8 +893,6 @@ static void *mx_reader_thread(void *arg)
 static int mx_start_reader_thread(MX *mx, MX_Component *comp)
 {
     int r;
-
-    LOG(mx->logger, "starting reader thread for %s on fd %d\n", comp->name, comp->fd);
 
     r = pthread_create(&comp->reader_thread, NULL, mx_reader_thread, comp);
 
@@ -1088,15 +910,9 @@ static void mx_stop_reader_thread(MX *mx, MX_Component *comp)
         return;
     }
 
-    LOG(mx->logger, "calling shutdown on fd %d\n", comp->fd);
-
     shutdown(comp->fd, O_RDWR);
 
-    LOG(mx->logger, "joining reader thread for %s\n", comp->name);
-
     pthread_join(comp->reader_thread, NULL);    /* Wait for reader to exit. */
-
-    LOG(mx->logger, "reader thread for %s terminated\n", comp->name);
 
     comp->reader_thread = 0;
 }
@@ -1111,50 +927,21 @@ static void *mx_writer_thread(void *arg)
 
     Buffer outgoing = { 0 };
 
-    Logger *logger = mx_create_logger("%s-writer-%d", comp->mx->me->name, comp->fd);
-
-    LOG(logger, "-> %s: mx_writer_thread started,\n", comp->name);
-
     /* Wait for commands from the writer_queue and write data to comp->fd. */
 
     while (1) {
-        LOG(logger, "calling mx_pop_command.\n");
-
         MX_Command *cmd = mx_pop_command(&comp->writer_queue, NULL);
 
-        LOG(logger, "mx_pop_command returned a command.\n");
-
         if (cmd->cmd_type == MX_CT_EXIT) {
-            LOG(logger, "exit command.\n");
-
             break;
         }
         else if (cmd->cmd_type == MX_CT_WRITE) {
-            LOG(logger, "write command for %s message.\n",
-                    mxMessageName(comp->mx, cmd->u.write.msg_type));
-
             bufPack(&outgoing,
                 PACK_INT32, cmd->u.write.msg_type,
                 PACK_INT32, cmd->u.write.version,
                 PACK_INT32, cmd->u.write.size,
                 PACK_RAW,   cmd->u.write.payload, cmd->u.write.size,
                 END);
-
-            LOG(logger, "Sending %d bytes to %s on fd %d:\n",
-                    bufLen(&outgoing), comp->name, comp->fd);
-
-#if LOGGER == 1
-            int offset, size = bufLen(&outgoing);
-            const char *data = bufGet(&outgoing);
-
-            for (offset = 0; offset < size; offset += 16) {
-                char *str;
-                hexstr(&str, data + offset,
-                        MIN(16, size - offset));
-                LOG(logger, "%s", str);
-                free(str);
-            }
-#endif
 
             tcpWrite(comp->fd, bufGet(&outgoing), bufLen(&outgoing));
 
@@ -1167,11 +954,7 @@ static void *mx_writer_thread(void *arg)
         }
     }
 
-    LOG(logger, "mx_writer_thread for fd %d (%s) exiting.\n", comp->fd, comp->name);
-
     bufReset(&outgoing);
-
-    logClose(logger);
 
     return NULL;
 }
@@ -1181,8 +964,6 @@ static void *mx_writer_thread(void *arg)
  */
 static int mx_start_writer_thread(MX *mx, MX_Component *comp)
 {
-    LOG(mx->logger, "starting writer thread for %s on fd %d\n", comp->name, comp->fd);
-
     int r = pthread_create(&comp->writer_thread, NULL, mx_writer_thread, comp);
 
     if (r != 0) {
@@ -1204,15 +985,9 @@ static void mx_stop_writer_thread(MX *mx, MX_Component *comp)
 
     MX_Command *cmd = mx_create_exit_command();
 
-    LOG(mx->logger, "sending exit command\n");
-
     mx_push_command(&comp->writer_queue, cmd);
 
-    LOG(mx->logger, "joining writer thread for %s\n", comp->name);
-
     pthread_join(comp->writer_thread, NULL);    /* Wait for writer to exit. */
-
-    LOG(mx->logger, "writer thread for %s terminated\n", comp->name);
 
     comp->writer_thread = 0;
 }
@@ -1284,9 +1059,6 @@ static void mx_destroy_component(MX *mx, MX_Component *comp)
     }
 
     if (comp != mx->me && comp->name != NULL && mx->on_end_comp_callback) {
-        LOG(mx->logger, "announcing end of component %s at %p\n",
-                comp->name, comp);
-
         mx->on_end_comp_callback(mx, comp->fd, comp->name, mx->on_end_comp_udata);
     }
 
@@ -1408,23 +1180,14 @@ static void mx_handle_subscribe_update(MX *mx, int fd,
 
     free(payload);
 
-    LOG(mx->logger, "subscription to messages with type %d from %s on fd %d.\n",
-            type, comp->name, comp->fd);
-
     msg = hashGet(&mx->message_by_type, HASH_VALUE(type));
 
     if (msg == NULL) {
-        LOG(mx->logger, "message type %d not yet known.\n", type);
-
         msg = mx_create_message(mx, type, NULL);
     }
 
-    LOG(mx->logger, "message type %d is called %s.\n", type, msg->msg_name);
-
     sub->comp = comp;
     sub->msg  = msg;
-
-    LOG(mx->logger, "adding subscription.\n");
 
     mlAppendTail(&msg->subscriptions, sub);
     mlAppendTail(&comp->subscriptions, sub);
@@ -1492,9 +1255,6 @@ static void mx_handle_hello_report(MX *mx, int fd,
             PACK_INT16,     &port,
             END);
 
-    LOG(mx->logger, "new component: name \"%s\", host \"%s\", port %d\n",
-            name, host, port);
-
     free(payload);
 
     /* Create component data and connect to it. */
@@ -1507,8 +1267,6 @@ static void mx_handle_hello_report(MX *mx, int fd,
         mxShutdown(mx);
         return;
     }
-
-    LOG(mx->logger, "connected to %s on fd %d\n", name, fd);
 
     comp = mx_create_component(mx);
 
@@ -1524,15 +1282,11 @@ static void mx_handle_hello_report(MX *mx, int fd,
 
     /* Tell it who we are... */
 
-    LOG(mx->logger, "sending HelloUpdate to %s on %d\n", name, fd);
-
     mx_pack(comp, MX_MT_HELLO_UPDATE, 0,
             PACK_STRING,    mx->me->name,
             END);
 
     /* And inform it of all of our subscriptions. */
-
-    LOG(mx->logger, "sending my subscriptions to %s on %d\n", name, fd);
 
     for (sub = mlHead(&mx->me->subscriptions); sub;
          sub = mlNext(&mx->me->subscriptions, sub)) {
@@ -1567,8 +1321,6 @@ static void mx_handle_hello_update(MX *mx, int fd,
             PACK_INT16,  &port,
             END);
 
-    LOG(mx->logger, "hello from %s on fd %d\n", name, fd);
-
     free(payload);
 
     dbgAssert(stderr, comp->name == NULL,
@@ -1578,15 +1330,10 @@ static void mx_handle_hello_update(MX *mx, int fd,
     comp->host = strdup(netPeerHost(fd));
     comp->port = port;
 
-    LOG(mx->logger, "sending my subscriptions to %s on fd %d\n", name, fd);
-
     /* Inform the new component of all of my subscriptions. */
 
     for (sub = mlHead(&mx->me->subscriptions); sub;
          sub = mlNext(&mx->me->subscriptions, sub)) {
-
-        LOG(mx->logger, "telling %s on fd %d I'm subscribed to %s messages.\n",
-                name, fd, mxMessageName(mx, sub->msg->msg_type));
 
         mx_pack(comp, MX_MT_SUBSCRIBE_UPDATE, 0,
                 PACK_INT32, sub->msg->msg_type,
@@ -1612,8 +1359,6 @@ static void mx_handle_hello_request(MX *mx, int fd,
 
     MX_Component *comp = paGet(&mx->components, fd);
 
-    LOG(mx->logger, "helloRequest on fd %d\n", fd);
-
     strunpack(payload, size,
             PACK_STRING,    &name,
             PACK_INT16,     &port,
@@ -1628,12 +1373,7 @@ static void mx_handle_hello_request(MX *mx, int fd,
     comp->host = strdup(netPeerHost(fd));
     comp->port = port;
 
-    LOG(mx->logger, "name = \"%s\", host = \"%s\", port = %d\n",
-            comp->name, comp->host, comp->port);
-
     /* Tell it my name (which may be different from "master". */
-
-    LOG(mx->logger, "sending HelloReply to %s on fd %d\n", comp->name, fd);
 
     mx_pack(comp, MX_MT_HELLO_REPLY, 0,
             PACK_STRING,    mx->me->name,
@@ -1646,9 +1386,6 @@ static void mx_handle_hello_request(MX *mx, int fd,
 
         if (existing == NULL || existing == comp || existing->name == NULL) continue;
 
-        LOG(mx->logger, "sending info on component %s on fd %d to %s on fd %d\n",
-                existing->name, existing->fd, comp->name, comp->fd);
-
         mx_pack(comp, MX_MT_HELLO_REPORT, 0,
                 PACK_STRING,    existing->name,
                 PACK_STRING,    existing->host,
@@ -1660,9 +1397,6 @@ static void mx_handle_hello_request(MX *mx, int fd,
 
     for (type = NUM_MX_MESSAGES; type < mx->next_message_type; type++) {
         MX_Message *msg = hashGet(&mx->message_by_type, HASH_VALUE(type));
-
-        LOG(mx->logger, "sending info on message type %s (id %d) to %s on fd %d\n",
-                msg->msg_name, msg->msg_type, comp->name, comp->fd);
 
         mx_pack(comp, MX_MT_REGISTER_REPORT, 0,
                 PACK_STRING,    msg->msg_name ? msg->msg_name : "",
@@ -1704,9 +1438,6 @@ static void mx_handle_register_request(MX *mx, int fd,
             PACK_STRING, &msg_name,
             END);
 
-    LOG(mx->logger, "got RegisterRequest for \"%s\" messages from %s (fd %d)\n",
-            msg_name, comp->name, fd);
-
     free(payload);
 
     if (strlen(msg_name) == 0) {        /* An anonymous message! */
@@ -1715,28 +1446,17 @@ static void mx_handle_register_request(MX *mx, int fd,
     }
 
     if (msg_name == NULL) {             /* Always allocate anon messages. */
-        LOG(mx->logger, "anonymous message. Allocating type %d.\n",
-                mx->next_message_type);
-
         msg = mx_create_message(mx, mx->next_message_type, msg_name);
 
         mx_broadcast_new_message(mx, msg, comp);
     }
     else {                              /* Else try to find existing... */
-        LOG(mx->logger, "message name = \"%s\".\n", msg_name);
-
         msg = hashGet(&mx->message_by_name, HASH_STRING(msg_name));
 
         if (msg == NULL) {              /* Or create a new message. */
-            LOG(mx->logger, "unknown. Allocating type %d.\n",
-                    mx->next_message_type);
-
             msg = mx_create_message(mx, mx->next_message_type, msg_name);
 
             mx_broadcast_new_message(mx, msg, comp);
-        }
-        else {
-            LOG(mx->logger, "known. Returning type %d.\n", msg->msg_type);
         }
     }
 
@@ -1758,8 +1478,6 @@ static void mx_handle_quit_request(MX *mx, int client_fd,
 {
     free(payload);
 
-    LOG(mx->logger, "calling mxShutdown.\n");
-
     mxShutdown(mx);
 }
 
@@ -1769,8 +1487,6 @@ static void mx_handle_quit_request(MX *mx, int client_fd,
 static void mx_handle_connect(MX *mx, int fd)
 {
     MX_Component *comp = mx_create_component(mx);
-
-    LOG(mx->logger, "new connection on %d.\n", fd);
 
     comp->fd = fd;
 
@@ -1794,8 +1510,6 @@ static void mx_handle_disconnect(MX *mx, int fd, char *whence)
         mxShutdown(mx);
     }
     else if (comp != NULL) {
-        LOG(mx->logger, "disconnect from fd %d (%s)\n", fd, comp->name);
-
         paDrop(&mx->components, fd);
 
         mx_destroy_component(mx, comp);
@@ -1816,9 +1530,6 @@ static int mx_subscribe(MX *mx, uint32_t type,
 
     MX_Message *msg;
     MX_Subscription *sub;
-
-    LOG(mx->logger, "subscribing to message type %d (%s)\n", type,
-            mxMessageName(mx, type));
 
     if ((msg = hashGet(&mx->message_by_type, HASH_VALUE(type))) == NULL) {
         mx_notice("Subscribing to unknown message type %d. "
@@ -1855,9 +1566,6 @@ static int mx_subscribe(MX *mx, uint32_t type,
         MX_Component *comp = paGet(&mx->components, fd);
 
         if (comp == NULL) continue;
-
-        LOG(mx->logger, "sending SubscribeUpdate for msg %s to fd %d (%s)\n",
-                mxMessageName(mx, type), comp->fd, comp->name);
 
         mx_pack(comp, MX_MT_SUBSCRIBE_UPDATE, 0, PACK_INT32, type, END);
     }
@@ -2064,14 +1772,12 @@ MX *mxCreateClient(const char *mx_host, const char *mx_name, const char *my_name
 
     if ((mx->listen_fd = tcpListen(NULL, 0)) == -1) {
         mx_error("couldn't open a listen socket (%s).\n", strerror(errno));
-        logClose(mx->logger);
         free(mx);
         return NULL;
     }
 
     if ((mx->master = mx_create_component(mx)) == NULL) {
         mx_error("couldn't create master component for \"%s\".\n", mx_name);
-        logClose(mx->logger);
         free(mx);
         return NULL;
     }
@@ -2079,7 +1785,6 @@ MX *mxCreateClient(const char *mx_host, const char *mx_name, const char *my_name
     if ((mx->me = mx_create_component(mx)) == NULL) {
         mx_error("couldn't create own component for \"%s\".\n", mx_name);
         mx_destroy_component(mx, mx->master);
-        logClose(mx->logger);
         free(mx);
         return NULL;
     }
@@ -2127,23 +1832,15 @@ MX *mxCreateMaster(const char *mx_name, const char *my_name)
 
     MX *mx = calloc(1, sizeof(*mx));
 
-    mx->logger = mx_create_logger("%s", my_name);
-
-    LOG(mx->logger, "opening a listen socket on port %d\n", mx_port);
-
     if ((mx->listen_fd = tcpListen(NULL, mx_port)) == -1) {
         mx_error("couldn't open a listen socket (%s)\n", strerror(errno));
-        logClose(mx->logger);
         free(mx);
         return NULL;
     }
 
-    LOG(mx->logger, "creating master component.\n");
-
     if ((mx->me = mx->master = mx_create_component(mx)) == NULL) {
         mx_error("couldn't create own component for \"%s\".\n", mx_name);
         close(mx->listen_fd);
-        logClose(mx->logger);
         free(mx);
         return NULL;
     }
@@ -2162,8 +1859,6 @@ MX *mxCreateMaster(const char *mx_name, const char *my_name)
  */
 int mxBegin(MX *mx)
 {
-    mx->logger = mx_create_logger("%s", mx->me->name);
-
     mx_create_message(mx, MX_MT_QUIT_REQUEST, "QuitRequest");
     mx_create_message(mx, MX_MT_HELLO_REQUEST, "HelloRequest");
     mx_create_message(mx, MX_MT_HELLO_REPLY, "HelloReply");
@@ -2192,24 +1887,18 @@ int mxBegin(MX *mx)
         uint32_t reply_version, reply_size;
         char *reply_payload;
 
-        LOG(mx->logger, "connecting to master.\n");
-
         if ((mx->master->fd = tcpConnect(mx->master->host, mx->master->port)) < 0) {
             mx_error("couldn't connect to master for \"%s\" at %s:%d (%s).\n",
                     mx->mx_name, mx->master->host, mx->master->port, strerror(errno));
             return -1;
         }
 
-        LOG(mx->logger, "connected to master on fd %d.\n", mx->master->fd);
-
         paSet(&mx->components, mx->master->fd, mx->master);
 
         mx_start_reader_thread(mx, mx->master);
         mx_start_writer_thread(mx, mx->master);
 
-        LOG(mx->logger, "sending HelloRequest and waiting for HelloReply.\n");
-
-        r = mx_pack_and_wait(mx->master, mx->logger, 5,
+        r = mx_pack_and_wait(mx->master, 5,
                 MX_MT_HELLO_REPLY, &reply_version, &reply_payload, &reply_size,
                 MX_MT_HELLO_REQUEST, 0,
                 PACK_STRING,    mx->me->name,
@@ -2224,9 +1913,6 @@ int mxBegin(MX *mx)
         strunpack(reply_payload, reply_size,
                 PACK_STRING, &mx->master->name,
                 END);
-
-        LOG(mx->logger, "got HelloReply, master's name is \"%s\"\n",
-                mx->master->name);
 
         free(reply_payload);
 
@@ -2334,8 +2020,6 @@ int mxProcessEvents(MX *mx)
 
         r = read(mx->event_pipe[RD], &evt, sizeof(evt));
 
-        LOG(mx->logger, "read returned %d\n", r);
-
         if (r == 0) {
             return mx_severity == MX_ERROR ? -1 : 0;
         }
@@ -2351,18 +2035,12 @@ int mxProcessEvents(MX *mx)
 
         switch(evt->evt_type) {
         case MX_ET_CONN:
-            LOG(mx->logger, "new connection on fd %d\n", evt->u.conn.fd);
             mx_handle_connect(mx, evt->u.conn.fd);
             break;
         case MX_ET_DISC:
-            LOG(mx->logger, "lost connection on fd %d\n", evt->u.conn.fd);
             mx_handle_disconnect(mx, evt->u.disc.fd, evt->u.disc.whence);
             break;
         case MX_ET_MSG:
-            LOG(mx->logger, "received %s message on fd %d (%s)\n",
-                    mxMessageName(mx, evt->u.msg.msg_type), evt->u.msg.fd,
-                    mxComponentName(mx, evt->u.msg.fd));
-
             mx_handle_message(mx, evt->u.msg.fd,
                     evt->u.msg.msg_type, evt->u.msg.version,
                     evt->u.msg.payload, evt->u.msg.size);
@@ -2395,24 +2073,16 @@ int mxRun(MX *mx)
 {
     struct pollfd poll_fd = { mx->event_pipe[RD], POLLIN, 0 };
 
-    LOG(mx->logger, "mxRun started.\n");
-
     while (1) {
         int r = poll(&poll_fd, 1, -1);
 
-        LOG(mx->logger, "poll returned %d\n", r);
-
         if (r < 0) {
-            LOG(mx->logger, "poll() failed: %s\n", strerror(errno));
-
             mx_error("poll() failed: %s\n", strerror(errno));
 
             return r;
         }
 
         r = mxProcessEvents(mx);
-
-        LOG(mx->logger, "mxProcessEvents returned %d\n", r);
 
         if (r != 1) return(r);
     }
@@ -2475,7 +2145,7 @@ uint32_t mxRegister(MX *mx, const char *msg_name)
         char *reply_payload = NULL;
         uint32_t reply_size, reply_version, msg_type;
 
-        r = mx_pack_and_wait(mx->master, mx->logger, 5,
+        r = mx_pack_and_wait(mx->master, 5,
                 MX_MT_REGISTER_REPLY, &reply_version,
                 &reply_payload, &reply_size,
                 MX_MT_REGISTER_REQUEST, 0,
@@ -2625,9 +2295,6 @@ void mxOnNewComponent(MX *mx,
 
         if (comp == NULL || comp->name == NULL) continue;
 
-        LOG(mx->logger, "announcing new component %s on fd %d\n",
-                comp->name, fd);
-
         handler(mx, fd, comp->name, udata);
     }
 }
@@ -2713,14 +2380,8 @@ void mxBroadcast(MX *mx, uint32_t type, uint32_t version, const void *payload, u
     MX_Subscription *sub;
     MX_Message *msg = hashGet(&mx->message_by_type, HASH_VALUE(type));
 
-    LOG(mx->logger, "broadcasting %s message with %d bytes of payload.\n",
-            mxMessageName(mx, type), size);
-
     for (sub = mlHead(&msg->subscriptions); sub;
          sub = mlNext(&msg->subscriptions, sub)) {
-        LOG(mx->logger, "sending to %s on fd %d.\n",
-                sub->comp->name, sub->comp->fd);
-
         mx_send(sub->comp, type, version, payload, size);
     }
 }
@@ -2753,14 +2414,8 @@ void mxVaPackAndBroadcast(MX *mx, uint32_t type, uint32_t version, va_list ap)
 
     int size = vastrpack(&payload, ap);
 
-    LOG(mx->logger, "broadcasting %s message with %d bytes of payload.\n",
-            mxMessageName(mx, type), size);
-
     for (sub = mlHead(&msg->subscriptions); sub;
          sub = mlNext(&msg->subscriptions, sub)) {
-        LOG(mx->logger, "sending to %s on fd %d.\n",
-                sub->comp->name, sub->comp->fd);
-
         mx_send(sub->comp, type, version, payload, size);
     }
 
@@ -2783,17 +2438,7 @@ int mxAwait(MX *mx, int fd, double timeout,
     int r;
     struct timespec ts;
 
-    LOG(mx->logger, "mx: %p\n", mx);
-    LOG(mx->logger, "fd: %d\n", fd);
-    LOG(mx->logger, "fd: %f\n", timeout);
-    LOG(mx->logger, "type: %d\n", type);
-    LOG(mx->logger, "&version: %p\n", version);
-    LOG(mx->logger, "&payload: %p\n", payload);
-    LOG(mx->logger, "&size: %p\n", size);
-
     MX_Component *comp = paGet(&mx->components, fd);
-
-    LOG(mx->logger, "comp: %p\n", comp);
 
     if (comp == NULL) {
         mx_error("file descriptor not connected to a component (%s).\n",
@@ -2803,25 +2448,14 @@ int mxAwait(MX *mx, int fd, double timeout,
 
     MX_Await *await = mx_add_await(comp, type);
 
-    LOG(mx->logger, "await: %p\n", await);
-
     double_to_timespec(mxNow() + timeout, &ts);
-
-    LOG(mx->logger, "calling pthread_mutex_timedlock\n");
 
     r = pthread_mutex_timedlock(&await->mutex, &ts);
 
-    LOG(mx->logger, "pthread_mutex_timedlock returned %d\n", r);
-
     if (r == 0) {
-        LOG(mx->logger, "received message in time.\n");
-
         *version = await->version;
         *payload = await->payload;
         *size = await->size;
-    }
-    else {
-        LOG(mx->logger, "timed out.\n");
     }
 
     pthread_mutex_unlock(&await->mutex);
@@ -2918,7 +2552,7 @@ int mxSendAndWait(MX *mx, int fd, double timeout,
         return -1;
     }
 
-    return mx_send_and_wait(comp, mx->logger, timeout,
+    return mx_send_and_wait(comp, timeout,
             reply_type, reply_version,
             reply_payload, reply_size,
             request_type, request_version,
@@ -2992,8 +2626,6 @@ void mxShutdown(MX *mx)
 {
     int fd;
 
-    LOG(mx->logger, "stopping timer and listener threads.\n");
-
     /* Stop the timer_thread. */
 
     mx_stop_timer_thread(mx);
@@ -3005,8 +2637,6 @@ void mxShutdown(MX *mx)
         MX_Component *comp = paGet(&mx->components, fd);
 
         if (comp == NULL) continue;
-
-        LOG(mx->logger, "destroying component on fd %d (%s).\n", fd, comp->name);
 
         paDrop(&mx->components, fd); /* Remove it from the administration. */
 
@@ -3036,8 +2666,6 @@ void mxDestroy(MX *mx)
 
         if (msg == NULL) continue;
 
-        LOG(mx->logger, "destroying message type %d (%s).\n", type, msg->msg_name);
-
         hashDel(&mx->message_by_type, HASH_VALUE(type));
 
         if (msg->msg_name != NULL) {
@@ -3062,8 +2690,6 @@ void mxDestroy(MX *mx)
     /* Don't have to free mx->master, because it's either a connected component,
      * in which case it was destroyed using its fd, or I *am* the master, in
      * which case it was destroyed when mx->me was destroyed. */
-
-    logClose(mx->logger);
 
     free(mx);
 }
