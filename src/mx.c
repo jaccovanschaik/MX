@@ -2,7 +2,7 @@
  * mx.c: The "mx" executable.
  *
  * Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:	$Id: mx.c 411 2017-04-04 20:01:14Z jacco $
+ * Version:	$Id: mx.c 441 2019-07-20 19:32:45Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
@@ -101,7 +101,7 @@ static int mx_master(int argc, char *argv[])
 }
 
 /*
- * Execute an "mx name" command.
+ * Execute the "mx name" command.
  */
 static int mx_name(int argc, char *argv[])
 {
@@ -111,7 +111,7 @@ static int mx_name(int argc, char *argv[])
 }
 
 /*
- * Execute an "mx host" command.
+ * Execute the "mx host" command.
  */
 static int mx_host(int argc, char *argv[])
 {
@@ -121,7 +121,7 @@ static int mx_host(int argc, char *argv[])
 }
 
 /*
- * Execute an "mx port" command.
+ * Execute the "mx port" command.
  */
 static int mx_port(int argc, char *argv[])
 {
@@ -147,7 +147,7 @@ static int mx_port(int argc, char *argv[])
 }
 
 /*
- * Execute an "mx quit" command.
+ * Execute the "mx quit" command.
  */
 static int mx_quit(int argc, char *argv[])
 {
@@ -244,6 +244,9 @@ static int mx_quit(int argc, char *argv[])
     return 0;
 }
 
+/*
+ * Timeout routine for the "mx list" command.
+ */
 static void mx_list_on_timeout(MX *mx, uint32_t id, double t, void *udata)
 {
     int i, verbosity;
@@ -261,6 +264,8 @@ static void mx_list_on_timeout(MX *mx, uint32_t id, double t, void *udata)
         fprintf(stderr, "Verbosity level out of bounds (0 - 2)\n");
         exit(1);
     }
+
+    /* OK, print all the components in <mx>. */
 
     for (i = 0; i < paCount(&mx->components); i++) {
         MX_Component *comp = paGet(&mx->components, i);
@@ -286,6 +291,9 @@ static void mx_list_on_timeout(MX *mx, uint32_t id, double t, void *udata)
     mxShutdown(mx);
 }
 
+/*
+ * Execute the "mx list" command.
+ */
 static int mx_list(const char *argv0, int argc, char *argv[])
 {
     Options *options = optCreate();
@@ -309,6 +317,13 @@ static int mx_list(const char *argv0, int argc, char *argv[])
     const char *host = mxEffectiveHost(optArg(options, "mx-host", NULL));
     const char *name = mxEffectiveName(optArg(options, "mx-name", NULL));
 
+    /*
+     * To get the participating components we'll create a new client, have it
+     * connect normally to the master (which means it'll receive HelloReport
+     * messages for all components) and print the reported components after a 1
+     * second timeout.
+     */
+
     MX *mx = mxClient(host, name, "mx-list");
 
     if (mx == NULL) {
@@ -316,7 +331,11 @@ static int mx_list(const char *argv0, int argc, char *argv[])
         return 1;
     }
 
+    /* Call mx_list_on_timeout after 1 second... */
+
     mxCreateTimer(mx, 0, mxNow() + 1, mx_list_on_timeout, options);
+
+    /* mxRun won't return until mx_list_on_timeout calls mxShutdown. */
 
     int r = mxRun(mx);
 
@@ -326,6 +345,9 @@ static int mx_list(const char *argv0, int argc, char *argv[])
     return r;
 }
 
+/*
+ * Execute the "mx help" command.
+ */
 static int mx_help(const char *argv0, int argc, char *argv[])
 {
     if (argc == 1) {
