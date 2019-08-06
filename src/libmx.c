@@ -2,7 +2,7 @@
  * libmx.c: Main interface to libmx.
  *
  * Copyright: (c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:   $Id: libmx.c 438 2019-07-16 18:51:26Z jacco $
+ * Version:   $Id: libmx.c 444 2019-08-06 13:11:41Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
@@ -40,7 +40,7 @@
 #define MIN_PORT 1024
 #define MAX_PORT 65535
 
-static Buffer msg_buffer = { 0 };
+static Buffer mx_message = { 0 };
 
 /* Severity of the last error. */
 
@@ -53,9 +53,9 @@ static enum {
  * Set the current error message to <fmt> with the subsequent parameters, and
  * the severity to <severity>.
  */
-static void mx_message(int severity, char *fmt, va_list ap)
+static void mx_set_message(int severity, char *fmt, va_list ap)
 {
-    bufAddV(&msg_buffer, fmt, ap);
+    bufAddV(&mx_message, fmt, ap);
 
     mx_severity = severity;
 }
@@ -70,7 +70,7 @@ static void mx_error(char *fmt, ...)
     va_list ap;
 
     va_start(ap, fmt);
-    mx_message(MX_ERROR, fmt, ap);
+    mx_set_message(MX_ERROR, fmt, ap);
     va_end(ap);
 }
 
@@ -84,7 +84,7 @@ static void mx_notice(char *fmt, ...)
     va_list ap;
 
     va_start(ap, fmt);
-    mx_message(MX_NOTICE, fmt, ap);
+    mx_set_message(MX_NOTICE, fmt, ap);
     va_end(ap);
 }
 
@@ -863,7 +863,7 @@ static void *mx_reader_thread(void *arg)
 {
     MX_Component *comp = arg;
 
-    /* Listen for external data on comp->fd, exit when the compection on the
+    /* Listen for external data on comp->fd, exit when the connection on the
      * reader_pipe is lost. */
 
     while (1) {
@@ -1003,7 +1003,7 @@ static MX_Component *mx_create_component(MX *mx)
 
     mx_init_queue(&comp->writer_queue);
 
-    bufClear(&msg_buffer);
+    bufClear(&mx_message);
 
     pthread_rwlock_init(&comp->await_lock, NULL);
 
@@ -2615,7 +2615,7 @@ void mxRemoveTimer(MX *mx, uint32_t id)
  */
 double mxNow(void)
 {
-    return nowd();
+    return dnow();
 }
 
 /*
@@ -2701,5 +2701,5 @@ void mxDestroy(MX *mx)
  */
 char *mxError(void)
 {
-    return bufDetach(&msg_buffer);
+    return bufDetach(&mx_message);
 }

@@ -5,7 +5,7 @@
  * types.h: Datatypes for MX.
  *
  * Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:	$Id: types.h 438 2019-07-16 18:51:26Z jacco $
+ * Version:	$Id: types.h 444 2019-08-06 13:11:41Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
@@ -240,10 +240,6 @@ typedef struct {
  * The MX struct.
  */
 struct MX {
-#if LOGGER == 1
-    Logger *logger;
-#endif
-
     char *mx_name;                      /* The MX name. */
     int listen_fd;                      /* File descriptor for listen port. */
 

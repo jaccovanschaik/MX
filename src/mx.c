@@ -2,7 +2,7 @@
  * mx.c: The "mx" executable.
  *
  * Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:	$Id: mx.c 441 2019-07-20 19:32:45Z jacco $
+ * Version:	$Id: mx.c 444 2019-08-06 13:11:41Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 #include <libjvs/options.h>
 #include <libjvs/utils.h>
@@ -260,6 +261,10 @@ static void mx_list_on_timeout(MX *mx, uint32_t id, double t, void *udata)
     else if ((arg = optArg(options, "verbose", NULL)) == NULL) {
         verbosity = 1;
     }
+    else if (!isdigit(arg[0])) {
+        fprintf(stderr, "Invalid verbosity level '%s'\n", arg);
+        exit(1);
+    }
     else if ((verbosity = arg[0] - '0') < 0 || verbosity > 2) {
         fprintf(stderr, "Verbosity level out of bounds (0 - 2)\n");
         exit(1);
@@ -381,7 +386,8 @@ static int mx_help(const char *argv0, int argc, char *argv[])
         fprintf(stderr, "\t-n, --mx-name <name>\tUse this MX name.\n");
         fprintf(stderr, "\t-h, --mx-host <name>\tUse this MX host.\n");
         fprintf(stderr, "\t-v, --verbose[=<level>]\tVerbosity level:\n");
-        fprintf(stderr, "\t\tlevel 1: also show subscriptions (default)\n");
+        fprintf(stderr, "\t\tlevel 0: only show components (default)\n");
+        fprintf(stderr, "\t\tlevel 1: also show subscriptions\n");
         fprintf(stderr, "\t\tlevel 2: also show system subscriptions\n");
     }
     else if (strcmp(argv[1], "quit") == 0) {

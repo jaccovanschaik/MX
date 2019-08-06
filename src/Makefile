@@ -1,7 +1,7 @@
 # Makefile.
 #
 # Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
-# Version:	$Id: Makefile 440 2019-07-16 18:58:47Z jacco $
+# Version:	$Id: Makefile 442 2019-07-29 10:01:49Z jacco $
 #
 # This software is distributed under the terms of the MIT license. See
 # http://www.opensource.org/licenses/mit-license.php for details.
@@ -64,6 +64,7 @@ clean:
             msg.[ch] evt.[ch] cmd.[ch] *.log tags $(CLEAN)
 
 test: mx libmx.a $(TESTS)
+	@echo "All tests successful."
 
 %: %.c libmx.a
 	$(CC) -I. $(CFLAGS) -o $@ $^ $(JVS_LIB) libmx.a -lm -lpthread
