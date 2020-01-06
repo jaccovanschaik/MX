@@ -5,7 +5,7 @@
  * libmx.h: Main interface to libmx.
  *
  * Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:	$Id: libmx.h 408 2017-02-13 11:24:13Z jacco $
+ * Version:	$Id: libmx.h 446 2020-01-06 07:54:01Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
@@ -19,6 +19,20 @@ extern "C" {
 #include <stdint.h>
 
 typedef struct MX MX;
+
+/*
+ * Set the current error message to <fmt> with the subsequent parameters, and
+ * the severity to MX_ERROR.
+ */
+__attribute__ ((format (printf, 1, 2)))
+static void mx_error(char *fmt, ...);
+
+/*
+ * Set the current error message to <fmt> with the subsequent parameters, and
+ * the severity to MX_NOTICE.
+ */
+__attribute__ ((format (printf, 1, 2)))
+static void mx_notice(char *fmt, ...);
 
 /*
  * Return the mx_name to use if <mx_name> was given to mxClient() or mxMaster().
@@ -76,21 +90,34 @@ int mxOption(char short_name, const char *long_name, int *argc, char *argv[], ch
  *
  * When this function finishes successfully, a listen port has been opened
  * for other components to connect to. No other connections have been made, and
- * no communication threads have been started yet.
+ * no communication threads have been started yet (use mxBegin() for this).
+ *
+ * This function exists for applications that need to do "stuff" after the
+ * listen port is opened but before the communication threads are started. Most
+ * applications will want to use the mxClient() function further down, which
+ * simply calls mxCreateClient() followed by mxBegin().
  */
 MX *mxCreateClient(const char *mx_host, const char *mx_name, const char *my_name);
 
 /*
  * Create and return an MX struct that will act as a master for the Message
- * Exchange with name <mx_name>, running on the local host.
+ * Exchange with name <mx_name>, running on the local host and using the name
+ * <my_name>.
  *
  * If <mx_name> is NULL, the environment variable MX_NAME is used. If that
  * doesn't exist, the environment variable USER is used. If that doesn't exist
  * either, the function fails and NULL is returned.
  * If <my_name> is NULL, "master" is used.
  *
- * When this function returns, a listen port has been opened for clients to
- * connect to.
+ * When this function finishes successfully, a listen port has been opened
+ * for other components to connect to. No other connections have been made, and
+ * no communication threads have been started yet (use mxBegin() for this).
+ *
+ * This function exists for applications that need to do "stuff" after the
+ * listen port is opened but before the communication threads are started (such
+ * as the "mx" command). Most applications will want to use the mxMaster()
+ * function further down, which simply calls mxCreateMaster() followed by
+ * mxBegin().
  */
 MX *mxCreateMaster(const char *mx_name, const char *my_name);
 

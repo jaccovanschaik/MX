@@ -2,7 +2,7 @@
  * libmx.c: Main interface to libmx.
  *
  * Copyright: (c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:   $Id: libmx.c 444 2019-08-06 13:11:41Z jacco $
+ * Version:   $Id: libmx.c 446 2020-01-06 07:54:01Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
@@ -104,7 +104,7 @@ static void double_to_timespec(double t, struct timespec *ts)
 }
 
 /*
- * Initialize <queue>.
+ * Initialize command queue <queue>.
  */
 static void mx_init_queue(MX_Queue *queue)
 {
@@ -298,7 +298,7 @@ static int mx_send_pointer(int fd, void *ptr)
 
 /*
  * Send a message of type <type>, with version <version>, payload <payload> and
- * payload size <size> over component <comp>.
+ * payload size <size> to component <comp>.
  */
 static void mx_send(MX_Component *comp,
         uint32_t type, uint32_t version,
@@ -313,7 +313,7 @@ static void mx_send(MX_Component *comp,
 
 /*
  * Pack a message with type <type> and version <version> with the fields in <ap>
- * over component <comp>.
+ * to component <comp>.
  */
 static void mx_va_pack(MX_Component *comp,
         uint32_t type, uint32_t version, va_list ap)
@@ -328,7 +328,7 @@ static void mx_va_pack(MX_Component *comp,
 
 /*
  * Pack a message with type <type> and version <version> and the subsequent
- * fields over component <comp>.
+ * fields to component <comp>.
  */
 static void mx_pack(MX_Component *comp,
         uint32_t type, uint32_t version, ...)
@@ -363,7 +363,7 @@ static MX_Await *mx_add_await(MX_Component *comp, uint32_t type)
 
 /*
  * Send a message of type <request_type> with version <request_version>, payload
- * <request_payload> and payload size <request_size> over component <comp>, and
+ * <request_payload> and payload size <request_size> to component <comp>, and
  * wait for a reply with type <reply_type>. If the reply arrives within
  * <timeout> seconds, 0 is returned and the version, payload and payload size of
  * the reply are returned via <reply_version>, <reply_payload> and <reply_size>.
@@ -436,7 +436,7 @@ static int mx_send_and_wait(MX_Component *comp, double timeout,
 
 /*
  * Pack a message of type <request_type> with version <request_version> and the
- * payload in <ap> over component <comp>, and wait for a reply with type
+ * payload in <ap>, send it to component <comp>, and wait for a reply with type
  * <reply_type>. If the reply arrives within <timeout> seconds, 0 is returned
  * and the version, payload and payload size of the reply are returned via
  * <reply_version>, <reply_payload> and <reply_size>. If the timeout expires
@@ -466,7 +466,7 @@ static int mx_va_pack_and_wait(MX_Component *comp, double timeout,
 
 /*
  * Pack a message of type <request_type> with version <request_version> and the
- * subsequent payload over component <comp>, and wait for a reply with type
+ * subsequent payload to component <comp>, and wait for a reply with type
  * <reply_type>. If the reply arrives within <timeout> seconds, 0 is returned
  * and the version, payload and payload size of the reply are returned via
  * <reply_version>, <reply_payload> and <reply_size>. If the timeout expires
@@ -1747,7 +1747,12 @@ int mxOption(char short_name, const char *long_name, int *argc, char *argv[], ch
  *
  * When this function finishes successfully, a listen port has been opened
  * for other components to connect to. No other connections have been made, and
- * no communication threads have been started yet.
+ * no communication threads have been started yet (use mxBegin() for this).
+ *
+ * This function exists for applications that need to do "stuff" after the
+ * listen port is opened but before the communication threads are started. Most
+ * applications will want to use the mxClient() function further down, which
+ * simply calls mxCreateClient() followed by mxBegin().
  */
 MX *mxCreateClient(const char *mx_host, const char *mx_name, const char *my_name)
 {
@@ -1804,15 +1809,23 @@ MX *mxCreateClient(const char *mx_host, const char *mx_name, const char *my_name
 
 /*
  * Create and return an MX struct that will act as a master for the Message
- * Exchange with name <mx_name>, running on the local host.
+ * Exchange with name <mx_name>, running on the local host and using the name
+ * <my_name>.
  *
  * If <mx_name> is NULL, the environment variable MX_NAME is used. If that
  * doesn't exist, the environment variable USER is used. If that doesn't exist
  * either, the function fails and NULL is returned.
  * If <my_name> is NULL, "master" is used.
  *
- * When this function returns, a listen port has been opened for clients to
- * connect to.
+ * When this function finishes successfully, a listen port has been opened
+ * for other components to connect to. No other connections have been made, and
+ * no communication threads have been started yet (use mxBegin() for this).
+ *
+ * This function exists for applications that need to do "stuff" after the
+ * listen port is opened but before the communication threads are started (such
+ * as the "mx" command). Most applications will want to use the mxMaster()
+ * function further down, which simply calls mxCreateMaster() followed by
+ * mxBegin().
  */
 MX *mxCreateMaster(const char *mx_name, const char *my_name)
 {
