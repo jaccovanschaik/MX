@@ -5,7 +5,7 @@
  * libmx.h: Main interface to libmx.
  *
  * Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:	$Id: libmx.h 446 2020-01-06 07:54:01Z jacco $
+ * Version:	$Id: libmx.h 448 2020-01-06 09:02:39Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
@@ -19,20 +19,6 @@ extern "C" {
 #include <stdint.h>
 
 typedef struct MX MX;
-
-/*
- * Set the current error message to <fmt> with the subsequent parameters, and
- * the severity to MX_ERROR.
- */
-__attribute__ ((format (printf, 1, 2)))
-static void mx_error(char *fmt, ...);
-
-/*
- * Set the current error message to <fmt> with the subsequent parameters, and
- * the severity to MX_NOTICE.
- */
-__attribute__ ((format (printf, 1, 2)))
-static void mx_notice(char *fmt, ...);
 
 /*
  * Return the mx_name to use if <mx_name> was given to mxClient() or mxMaster().
