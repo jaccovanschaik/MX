@@ -2,7 +2,7 @@
  * libmx.c: Main interface to libmx.
  *
  * Copyright: (c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:   $Id: libmx.c 446 2020-01-06 07:54:01Z jacco $
+ * Version:   $Id: libmx.c 449 2020-01-06 09:05:24Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
@@ -2679,10 +2679,10 @@ void mxDestroy(MX *mx)
 
         if (msg == NULL) continue;
 
-        hashDel(&mx->message_by_type, HASH_VALUE(type));
+        hashDrop(&mx->message_by_type, HASH_VALUE(type));
 
         if (msg->msg_name != NULL) {
-            hashDel(&mx->message_by_name, HASH_STRING(msg->msg_name));
+            hashDrop(&mx->message_by_name, HASH_STRING(msg->msg_name));
             free(msg->msg_name);
         }
 
