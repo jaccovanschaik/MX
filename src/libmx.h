@@ -18,6 +18,8 @@ extern "C" {
 #include <stdarg.h>
 #include <stdint.h>
 
+#define MAX_PAYLOAD_SIZE UINT32_MAX
+
 typedef struct MX MX;
 
 /*

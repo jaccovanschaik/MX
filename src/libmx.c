@@ -319,7 +319,9 @@ static void mx_va_pack(MX_Component *comp,
         uint32_t type, uint32_t version, va_list ap)
 {
     char *payload;
-    int size = vastrpack(&payload, ap);
+    size_t size = vastrpack(&payload, ap);
+
+    dbgAssert(stderr, size <= MAX_PAYLOAD_SIZE, "payload too large.\n");
 
     mx_send(comp, type, version, payload, size);
 
@@ -453,7 +455,9 @@ static int mx_va_pack_and_wait(MX_Component *comp, double timeout,
 {
     int r;
     char *payload;
-    uint32_t size = vastrpack(&payload, ap);
+    size_t size = vastrpack(&payload, ap);
+
+    dbgAssert(stderr, size <= MAX_PAYLOAD_SIZE, "payload too large.\n");
 
     r = mx_send_and_wait(comp, timeout,
             reply_type, reply_version, reply_payload, reply_size,
@@ -801,9 +805,9 @@ static void mx_stop_timer_thread(MX *mx)
  * We have incoming data on component <comp>; it is <size> bytes long and is
  * contained in <data>. Process it.
  */
-static void mx_handle_incoming(MX_Component *comp, const char *data, int size)
+static void mx_handle_incoming(MX_Component *comp, const char *data, size_t data_size)
 {
-    bufAdd(&comp->incoming, data, size);
+    bufAdd(&comp->incoming, data, data_size);
 
     while (bufLen(&comp->incoming) >= HEADER_SIZE) {
         MX_Await *await;
@@ -869,7 +873,7 @@ static void *mx_reader_thread(void *arg)
     while (1) {
         char data[9000];
 
-        int r = read(comp->fd, data, sizeof(data));
+        ssize_t r = read(comp->fd, data, sizeof(data));
 
         if (r == 0) {               /* Lost connection. */
             mx_send_pointer(comp->mx->event_pipe[WR],
