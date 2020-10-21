@@ -2,7 +2,7 @@
  * libmx.c: Main interface to libmx.
  *
  * Copyright: (c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:   $Id: libmx.c 449 2020-01-06 09:05:24Z jacco $
+ * Version:   $Id: libmx.c 451 2020-10-21 21:15:06Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <errno.h>
 #include <pthread.h>
@@ -1751,19 +1752,14 @@ int mxOption(char short_name, const char *long_name, int *argc, char *argv[], ch
  *
  * When this function finishes successfully, a listen port has been opened
  * for other components to connect to. No other connections have been made, and
- * no communication threads have been started yet (use mxBegin() for this).
- *
- * This function exists for applications that need to do "stuff" after the
- * listen port is opened but before the communication threads are started. Most
- * applications will want to use the mxClient() function further down, which
- * simply calls mxCreateClient() followed by mxBegin().
+ * no communication threads have been started yet (use mx_begin() for this).
  */
-MX *mxCreateClient(const char *mx_host, const char *mx_name, const char *my_name)
+static MX *mx_create_client(const char *mx_host, const char *mx_name, const char *my_name)
 {
     uint16_t mx_port;
 
     if (my_name == NULL) {
-        mx_error("<my_name> can not be NULL in call to mxCreateClient (%s).\n",
+        mx_error("<my_name> can not be NULL in call to mx_create_client (%s).\n",
                 strerror(EINVAL));
         return NULL;
     }
@@ -1823,15 +1819,9 @@ MX *mxCreateClient(const char *mx_host, const char *mx_name, const char *my_name
  *
  * When this function finishes successfully, a listen port has been opened
  * for other components to connect to. No other connections have been made, and
- * no communication threads have been started yet (use mxBegin() for this).
- *
- * This function exists for applications that need to do "stuff" after the
- * listen port is opened but before the communication threads are started (such
- * as the "mx" command). Most applications will want to use the mxMaster()
- * function further down, which simply calls mxCreateMaster() followed by
- * mxBegin().
+ * no communication threads have been started yet (use mx_begin() for this).
  */
-MX *mxCreateMaster(const char *mx_name, const char *my_name)
+static MX *mx_create_master(const char *mx_name, const char *my_name)
 {
     uint16_t mx_port;
 
@@ -1874,7 +1864,7 @@ MX *mxCreateMaster(const char *mx_name, const char *my_name)
 /*
  * Begin running the threads that listen for connection and timer events.
  */
-int mxBegin(MX *mx)
+static int mx_begin(MX *mx)
 {
     mx_create_message(mx, MX_MT_QUIT_REQUEST, "QuitRequest");
     mx_create_message(mx, MX_MT_HELLO_REQUEST, "HelloRequest");
@@ -1947,25 +1937,44 @@ int mxBegin(MX *mx)
  * Create and return an MX struct that will act as a master for the Message
  * Exchange with name <mx_name>, running on the local host.
  *
- * If <mx_name> is NULL, the environment variable MX_NAME is used. If that
- * doesn't exist, the environment variable USER is used. If that doesn't exist
- * either, the function fails and NULL is returned.
- * If <my_name> is NULL, "master" is used.
+ * If <mx_name> is NULL, the environment variable MX_NAME is used instead. If
+ * that doesn't exist, the environment variable USER is used. If that doesn't
+ * exist either, the function fails and NULL is returned. If <my_name> is NULL,
+ * "master" is used.
  *
- * When this function returns, a listen port has been opened for clients to
- * connect to, and the necessary background threads will also be started.
+ * If <background> is true, the master component will be put into the background
+ * after the listen port for this master component has been opened. This means
+ * that any additional components started after the master (in a shell script,
+ * for instance) will find a listen port waiting for them.
+ *
+ * This "backgrounding" is done using a fork() system call, which means that any
+ * threads started before calling this function (if any) will not survive. So if
+ * you want to background the master component and also start additional
+ * threads, do the latter *after* calling this function.
  */
-MX *mxMaster(const char *mx_name, const char *my_name)
+MX *mxMaster(const char *mx_name, const char *my_name, bool background)
 {
     int r;
+    pid_t pid;
 
-    MX *mx = mxCreateMaster(mx_name, my_name);
+    MX *mx = mx_create_master(mx_name, my_name);
 
     if (mx == NULL) {
         mx_error("couldn't create mx (%s).\n", strerror(errno));
         return NULL;
     }
-    else if ((r = mxBegin(mx)) != 0) {
+    else if (background && (pid = fork()) == -1) {
+        mx_error("fork() failed (%s).\n", strerror(errno));
+
+        mxShutdown(mx);
+        mxDestroy(mx);
+
+        return NULL;
+    }
+    else if (background && pid != 0) {
+        exit(0);
+    }
+    else if ((r = mx_begin(mx)) != 0) {
         mxShutdown(mx);
         mxDestroy(mx);
 
@@ -1994,14 +2003,14 @@ MX *mxClient(const char *mx_host, const char *mx_name, const char *my_name)
 {
     int r;
 
-    MX *mx = mxCreateClient(mx_host, mx_name, my_name);
+    MX *mx = mx_create_client(mx_host, mx_name, my_name);
 
     if (mx == NULL) {
         mx_error("couldn't create mx (%s).\n", strerror(errno));
 
         return NULL;
     }
-    else if ((r = mxBegin(mx)) != 0) {
+    else if ((r = mx_begin(mx)) != 0) {
         mxShutdown(mx);
         mxDestroy(mx);
 

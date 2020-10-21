@@ -5,9 +5,9 @@
 # Author:    Jacco van Schaik (jacco.van.schaik@dnw.aero)
 # Copyright: (c) 2016 DNW German-Dutch Windtunnels
 # Created:   2016-08-04
-# Version:   $Id: script.sh 426 2017-05-26 11:03:08Z jacco $
+# Version:   $Id: script.sh 451 2020-10-21 21:15:06Z jacco $
 
-mx master -d
+mx master -b
 
 echo "The MX name is:" `mx name`
 echo "The MX port is:" `mx port`

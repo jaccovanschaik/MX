@@ -1,7 +1,7 @@
 # tests/test1/test.mk: Makefile fragment for test1.
 #
 # Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
-# Version:	$Id: test.mk 325 2016-07-19 12:22:05Z jacco $
+# Version:	$Id: test.mk 451 2020-10-21 21:15:06Z jacco $
 #
 # This software is distributed under the terms of the MIT license. See
 # http://www.opensource.org/licenses/mit-license.php for details.
@@ -26,7 +26,7 @@ base1: $(TEST1_OUTPUT)
 	cp $(TEST1_OUTPUT) $(BASE1_OUTPUT)
 
 $(TEST1_OUTPUT): mx $(TEST1_PING) $(TEST1_OBS) $(TEST1_ECHO)
-	./mx master -d
+	./mx master -b
 	export LC_ALL=C; $(TEST1_OBS) | sort > $(TEST1_OUTPUT) &
 	$(TEST1_ECHO) &
 	$(TEST1_PING)
