@@ -2,7 +2,7 @@
  *
  * Copyright: (c) 2016 Jacco van Schaik (jacco@jaccovanschaik.net)
  * Created:   2016-07-06
- * Version:   $Id: pymx.c 438 2019-07-16 18:51:26Z jacco $
+ * Version:   $Id: pymx.c 452 2020-10-21 21:27:17Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
@@ -48,7 +48,7 @@ static int MX_Init(MXObject *self, PyObject *args, PyObject *kwds)
     }
 
     if (mx_host == NULL) {
-        self->mx = mxMaster(mx_name, my_name);
+        self->mx = mxMaster(mx_name, my_name, false);
     }
     else if (my_name != NULL) {
         self->mx = mxClient(mx_host, mx_name, my_name);
