@@ -2,7 +2,7 @@
  * observer.c: Observe and log the interactions between the components.
  *
  * Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:	$Id: observer.c 317 2016-07-18 18:58:59Z jacco $
+ * Version:	$Id: observer.c 451 2020-10-21 21:15:06Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 {
     int r;
 
-    MX *mx = mxMaster(NULL, "Observer");
+    MX *mx = mxMaster(NULL, "Observer", false);
 
     if (mx == NULL) {
         printf("mxMaster failed.\n");

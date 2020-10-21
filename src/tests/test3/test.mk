@@ -1,7 +1,7 @@
 # tests/test3/test.mk: Makefile fragment for test3.
 #
 # Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
-# Version:	$Id: test.mk 324 2016-07-19 09:58:04Z jacco $
+# Version:	$Id: test.mk 451 2020-10-21 21:15:06Z jacco $
 #
 # This software is distributed under the terms of the MIT license. See
 # http://www.opensource.org/licenses/mit-license.php for details.
@@ -25,7 +25,7 @@ base3: $(TEST3_OUTPUT)
 	cp $(TEST3_OUTPUT) $(BASE3_OUTPUT)
 
 $(TEST3_OUTPUT): mx $(TEST3_PROD) $(TEST3_CONS)
-	./mx master -d
+	./mx master -b
 	$(TEST3_PROD) &
 	sleep 1
 	$(TEST3_CONS) 0 > $(TEST3_DIR)/consumer0.test &

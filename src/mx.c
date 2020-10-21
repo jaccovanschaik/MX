@@ -2,7 +2,7 @@
  * mx.c: The "mx" executable.
  *
  * Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:	$Id: mx.c 444 2019-08-06 13:11:41Z jacco $
+ * Version:	$Id: mx.c 451 2020-10-21 21:15:06Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
@@ -56,42 +56,20 @@ static int mx_master(int argc, char *argv[])
     Options *options = optCreate();
 
     optAdd(options, "mx-name", 'n', ARG_REQUIRED);
-    optAdd(options, "daemon", 'd', ARG_NONE);
+    optAdd(options, "background", 'b', ARG_NONE);
 
     if (optParse(options, argc, argv) == -1) return 1;
 
     name = mxEffectiveName(optArg(options, "mx-name", NULL));
 
-    mx = mxCreateMaster(name, NULL);
+    mx = mxMaster(name, NULL, optIsSet(options, "background"));
 
     if (mx == NULL) {
         fputs(mxError(), stderr);
         return 1;
     }
-
-    if (!optIsSet(options, "daemon")) {
-        fprintf(stderr, "Master listening on port %d for mx \"%s\"\n",
-                mxEffectivePort(name), name);
-
-        if ((r = mxBegin(mx)) != 0) {
-            fprintf(stderr, "mxBegin returned %d: %s", r, mxError());
-        }
-        else if ((r = mxRun(mx)) != 0) {
-            fprintf(stderr, "mxRun returned %d: %s", r, mxError());
-        }
-    }
-    else if (daemon(0, 1) == 0) {
-        if ((r = mxBegin(mx)) != 0) {
-            fprintf(stderr, "mxBegin returned %d: %s", r, mxError());
-        }
-        else if ((r = mxRun(mx)) != 0) {
-            fprintf(stderr, "mxRun returned %d: %s", r, mxError());
-        }
-    }
-    else {
-        fprintf(stderr, "daemon() failed\n");
-
-        r = 1;
+    else if ((r = mxRun(mx)) != 0) {
+        fprintf(stderr, "mxRun returned %d: %s", r, mxError());
     }
 
     optDestroy(options);
@@ -363,7 +341,7 @@ static int mx_help(const char *argv0, int argc, char *argv[])
                 "%s master [ <options> ]\n\tStarts an MX master.\n\n", argv0);
         fprintf(stderr, "Options:\n");
         fprintf(stderr, "\t-n, --mx-name <name>\tUse this MX name.\n");
-        fprintf(stderr, "\t-d, --daemon\t\tRun as a daemon.\n");
+        fprintf(stderr, "\t-b, --background\t\tRun in the background.\n");
     }
     else if (strcmp(argv[1], "name") == 0) {
         fprintf(stderr,

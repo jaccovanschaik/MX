@@ -1,7 +1,7 @@
 # tests/test5/test.mk: Makefile fragment for test5.
 #
 # Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
-# Version:	$Id: test.mk 332 2016-07-21 13:01:42Z jacco $
+# Version:	$Id: test.mk 451 2020-10-21 21:15:06Z jacco $
 #
 # This software is distributed under the terms of the MIT license. See
 # http://www.opensource.org/licenses/mit-license.php for details.
@@ -24,7 +24,7 @@ base5: $(TEST5_OUTPUT)
 	cp $(TEST5_OUTPUT) $(BASE5_OUTPUT)
 
 $(TEST5_OUTPUT): mx $(TEST5_EXE)
-	./mx master -d
+	./mx master -b
 	$(TEST5_EXE) > $(TEST5_OUTPUT)
 	./mx quit
 	sleep 1
