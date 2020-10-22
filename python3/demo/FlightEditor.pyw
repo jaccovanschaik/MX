@@ -16,10 +16,10 @@ import sys, time
 
 from mx import MX
 
-from PyQt4.QtGui import QApplication, QMenu, QTableWidgetItem, QComboBox, QDateTimeEdit
-from PyQt4.QtCore import QSocketNotifier, QDateTime
+from PyQt5.QtWidgets import QApplication, QMenu, QTableWidgetItem, QComboBox, QDateTimeEdit
+from PyQt5.QtCore import QSocketNotifier, QDateTime
 
-import PyQt4.uic as uic
+import PyQt5.uic as uic
 
 from Messages import CreateFlightMessage, UpdateFlightMessage, DeleteFlightMessage
 from Messages import FlightCreatedMessage, FlightUpdatedMessage, FlightDeletedMessage

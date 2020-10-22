@@ -10,6 +10,8 @@
 
 #include "../src/libmx.h"
 
+#define PY_SSIZE_T_CLEAN
+
 #include <Python.h>
 #include <structmember.h>
 
@@ -227,7 +229,8 @@ void subscribe_cb(MX *mx, int fd, uint32_t type, uint32_t version,
 {
     PyObject *r;
     PyObject *handler = udata;
-    PyObject *arglist = Py_BuildValue("(iIIy#)", fd, type, version, payload, size);
+    Py_ssize_t py_size = size;
+    PyObject *arglist = Py_BuildValue("(iIIy#)", fd, type, version, payload, py_size);
 
     free(payload);
 
@@ -480,7 +483,7 @@ static PyObject *MX_Send(MXObject *self,
     int fd;
     uint32_t msg_type, msg_version;
     char *payload;
-    int size;
+    Py_ssize_t size;
 
     if (PyArg_ParseTupleAndKeywords(args, kwds, "iIIy#:send",
                 kwlist, &fd, &msg_type, &msg_version, &payload, &size) == 0) {
@@ -500,7 +503,7 @@ static PyObject *MX_Broadcast(MXObject *self,
     static char *kwlist[] = {"msg_type", "msg_version", "payload", NULL};
     uint32_t msg_type, msg_version;
     char *payload;
-    int size;
+    Py_ssize_t size;
 
     if (PyArg_ParseTupleAndKeywords(args, kwds, "IIy#:broadcast",
                 kwlist, &msg_type, &msg_version, &payload, &size) == 0) {
@@ -526,6 +529,7 @@ static PyObject *MX_Await(MXObject *self,
     uint32_t type, version = 0;
     char *payload = NULL;
     uint32_t size = 0;
+    Py_ssize_t py_size;
 
     if (PyArg_ParseTupleAndKeywords(args, kwds, "idI:await",
                 kwlist, &fd, &timeout, &type) == 0) {
@@ -534,7 +538,9 @@ static PyObject *MX_Await(MXObject *self,
 
     r = mxAwait(self->mx, fd, timeout, type, &version, &payload, &size);
 
-    result = Py_BuildValue("(iIy#)", r, version, payload, size);
+    py_size = size;
+
+    result = Py_BuildValue("(iIy#)", r, version, payload, py_size);
 
     return result;
 }
@@ -560,7 +566,8 @@ static PyObject *MX_SendAndWait(MXObject *self,
     uint32_t reply_type = 0, request_type = 0;
     uint32_t reply_version = 0, request_version = 0;
     char *request_payload = NULL, *reply_payload = NULL;
-    uint32_t request_size = 0, reply_size = 0;
+    Py_ssize_t request_size = 0;
+    uint32_t reply_size = 0;
 
     if (PyArg_ParseTupleAndKeywords(args, kwds, "idIIIy#:sendAndAwait",
                 kwlist, &fd, &timeout, &reply_type, &request_type,
@@ -572,7 +579,9 @@ static PyObject *MX_SendAndWait(MXObject *self,
             reply_type, &reply_version, &reply_payload, &reply_size,
             request_type, request_version, request_payload, request_size);
 
-    result = Py_BuildValue("(iIy#)", r, reply_version, reply_payload, reply_size);
+    Py_ssize_t py_reply_size = reply_size;
+
+    result = Py_BuildValue("(iIy#)", r, reply_version, reply_payload, py_reply_size);
 
     return result;
 }

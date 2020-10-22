@@ -19,10 +19,11 @@ import sys, time, argparse
 
 from mx import MX
 
-from PyQt4.QtGui import QApplication, QTableWidgetItem, QLabel, QColor, QPixmap
-from PyQt4.QtCore import QSocketNotifier, QDateTime
+from PyQt5.QtWidgets import QApplication, QTableWidgetItem, QLabel
+from PyQt5.QtGui import QColor, QPixmap
+from PyQt5.QtCore import QSocketNotifier, QDateTime
 
-import PyQt4.uic as uic
+import PyQt5.uic as uic
 
 from Messages import CreateFlightMessage, UpdateFlightMessage, DeleteFlightMessage
 from Messages import FlightCreatedMessage, FlightUpdatedMessage, FlightDeletedMessage
@@ -167,7 +168,7 @@ class FlightDisplay(QApplication):
       self._ui.table.insertRow(row)
 
       item = QTableWidgetItem(self._flights[ident].callsign)
-      item.setBackgroundColor(color)
+      item.setBackground(color)
       self._ui.table.setItem(row, 0, item)
 
       label = QLabel(self._ui.table)
@@ -176,20 +177,20 @@ class FlightDisplay(QApplication):
       self._ui.table.setCellWidget(row, 1, label)
 
       item = QTableWidgetItem(self._flights[ident].city)
-      item.setBackgroundColor(color)
+      item.setBackground(color)
       self._ui.table.setItem(row, 2, item)
 
       t = time.strftime("%H:%M", time.localtime(self._flights[ident].time))
       item = QTableWidgetItem(t)
-      item.setBackgroundColor(color)
+      item.setBackground(color)
       self._ui.table.setItem(row, 3, item)
 
       item = QTableWidgetItem(self._flights[ident].gate)
-      item.setBackgroundColor(color)
+      item.setBackground(color)
       self._ui.table.setItem(row, 4, item)
 
       item = QTableWidgetItem(self._flights[ident].remarks)
-      item.setBackgroundColor(color)
+      item.setBackground(color)
       self._ui.table.setItem(row, 5, item)
 
     self._ui.table.resizeColumnsToContents()
