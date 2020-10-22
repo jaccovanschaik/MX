@@ -9,5 +9,4 @@
 all clean install:
 	$(MAKE) -C src $@
 	$(MAKE) -C doc $@
-	$(MAKE) -C python2 $@
 	$(MAKE) -C python3 $@
