@@ -92,19 +92,20 @@
           failure but will not try to restart the failed component, for example.
         </p>
         <p>
-          Also, the master component constitutes an obvious single point of failure. If it crashes 
-          or is killed all other participating components will also exit. This should not be a big 
-          problem for a standalone master (started using <tt>mx master</tt>) because it is fairly 
-          robust, but if another component assumes the master role (see the <a 
-          href="#mxMaster">mxMaster</a> function) and it quits or crashes, all other participating 
-          components will exit too.
+          Also, the master component constitutes an obvious single point of failure. If it crashes
+          or is killed all other participating components will also exit. This should not be a big
+          problem for a standalone master (started using <tt><a href="#MxExecutable">mx
+          master</a></tt>) because it is fairly robust, but if another component assumes the master
+          role (see the <a href="#mxMaster">mxMaster</a> function) and it exits or crashes, all
+          other participating components will exit too.
         </p>
       </li>
       <li>
         <p>
           Finally, security was not a design consideration for MX. If you can connect to the master
           component it is trivially easy to kill it with a hand-crafted message (indeed, this
-          message was specifically designed to make it so), components connect to each other without
+          message was specifically designed to make it so). This will then cause all other
+          components to exit too. Furthermore, components connect to each other without
           any authentication, and messages are exchanged without any encryption. MX is expected to
           run on a private network where all connected devices can be trusted.
         </p>
@@ -121,16 +122,24 @@
         stocks it connects publishers and subscribers of messages. It allows connected programs
         (known as <em>components</em>) to subscribe to certain types of messages. Other components
         can broadcast messages, and they will automatically be sent to those components that have
-        subscribed to that particular message type.
+        subscribed to that particular message type. It is also possible for components to send
+        messages directly to another component, if that is needed.
       </p>
     </a>
     <a name="components"><h3>Master and client components</h3>
       <p>
-        One of the components in a message exchange is the <em>master</em>. It maintains the central
-        store of message types, participating components and their subscriptions. All other
-        components (known as <em>clients</em>) are informed about changes in this central store by
-        messages from the master and use these to update their own copy of it. The master component
-        can be a standalone program but its role can also be incorporated into one of the clients.
+        One of the components in a message exchange is the <em>master</em>. It is started first, and
+        it maintains the central store of message types, all participating components and their
+        subscriptions. All other components (known as <em>clients</em>) are informed about changes
+        in this central store by messages from the master and use these to update their own copy of
+        it. The master component can be a standalone program but its role can also be incorporated
+        into one of the other components. There can, however, only be one master component in any
+        message exchange, and if it crashes or exits all connected client components will exit too.
+      </p>
+      <p>
+        Client components exchange messages directly; they don't all go through the master
+        component. The connections between all components end up looking like a star network: all
+        components have a single connection to every other component.
       </p>
     </a>
     <a name="MxName"><h3>MX name</h3>
@@ -248,7 +257,7 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
       </dt>
       <dd>
         Normal components should use <a href="#mxClient">mxClient</a> to connect to a
-        master component, giving the hostname where it runs and the MX name, along with the name
+        master component, giving the hostname where it runs and its MX name, along with the name
         under which the component itself wants to be known. Components that also want to assume the
         master role themselves should call <a href="#mxMaster">mxMaster</a> with just the
         MX name and their own name.
@@ -271,7 +280,9 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
         messages being registered, components connecting to or disconnecting from the master, or
         components subscribing to or unsubscribing from a message type. With every subscription you
         can also pass in an opaque void pointer <tt>udata</tt> (for "user data") which is passed
-        back to you unchanged on every delivery.
+        back to you unchanged on every delivery. By the way, there is no additional work for
+        messages you want to send; you don't have to "announce" them or anything. You can simply
+        start sending them.
       </dd>
     </dl>
     <h3>Message loop</h3>
@@ -299,8 +310,8 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
       </dd>
     </dl>
     <p>
-      By the way, it is perfectly fine to register and subscribe to new messages once the message
-      loop is running.
+      By the way, it is perfectly fine to register new messages and/or subscribe to them once the
+      message loop is running.
     </p>
     <h2>Function reference</h2>
     <a name="mxEffectiveName">
@@ -352,12 +363,29 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
     </a>
     <a name="mxMaster">
       <p>
-        <div class="func">MX *mxMaster(const char *mx_name, const char *my_name)</div>
+        <div class="func">
+          MX *mxMaster(const char *mx_name, const char *my_name, bool background)
+        </div>
       </p>
       <p>
         Start a new message exchange with MX name <span class="parameter">mx_name</span>. The new MX
         struct that is returned can be used as if it were a regular component. In the background,
         however, this component will also perform the duties of a master component.
+      </p>
+      <p>
+        If <span class="parameter">background</span> is set to <em>true</em>, this master component
+        will put itself in the background after it has opened its listen socket. This is useful if
+        you are starting all components in a shell script: you can start the master component first,
+        have it put itself into the background and then start all additional client components. They
+        will find a listen port already waiting for them so they can connect to the master right
+        away.
+      </p>
+      <p>
+        This "backgrounding" is done by using a <em>fork()</em> system call, which has the
+        unfortunate consequence that any threads started <em>before</em> the call to <tt><a
+        href="#mxMaster">mxMaster</a></tt> will be killed. So if you want to background the master
+        component and also start additional threads, do the latter <em>after</em> calling this
+        function.
       </p>
     </a>
     <a name="mxMyName">
