@@ -9,7 +9,7 @@
 
   Copyright: (c) 2016 Jacco van Schaik (jacco@jaccovanschaik.net)
   Created:   2016-08-03
-  Version:   $Id: FlightDisplay.pyw 426 2017-05-26 11:03:08Z jacco $
+  Version:   $Id: FlightDisplay.pyw 456 2020-10-22 10:35:42Z jacco $
 
   This software is distributed under the terms of the MIT license. See
   http://www.opensource.org/licenses/mit-license.php for details.
