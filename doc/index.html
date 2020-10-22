@@ -55,7 +55,7 @@
     <pre>** Documentation for MX.
 **
 ** Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
-** Version:	$Id: index.html 445 2019-10-14 13:48:02Z jacco $
+** Version:	$Id: index.html 454 2020-10-22 09:05:36Z jacco $
 **
 ** This software is distributed under the terms of the MIT license. See
 ** http://www.opensource.org/licenses/mit-license.php for details.</pre>
@@ -827,7 +827,8 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
         </dd>
       </p>
       <p>
-        All integers sent in these messages are big-endian.
+        All integers in these messages are sent in big-endian or network byte order format, with the
+        most significant byte transmitted first.
       </p>
       <dl>
         <a name="QuitRequest">
