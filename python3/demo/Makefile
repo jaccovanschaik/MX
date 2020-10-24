@@ -8,7 +8,7 @@
 # http://www.opensource.org/licenses/mit-license.php for details.
 
 clean:
-	$(RM) *.pyc
+	$(RM) -r *.pyc __pycache__
 
 all:
 
