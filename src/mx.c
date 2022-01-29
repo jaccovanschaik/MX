@@ -1,8 +1,8 @@
 /*
  * mx.c: The "mx" executable.
  *
- * Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:	$Id: mx.c 458 2021-08-05 12:58:37Z jacco $
+ * Copyright:	(c) 2014-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
+ * Version:	$Id: mx.c 459 2022-01-29 19:31:00Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.

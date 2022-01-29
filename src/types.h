@@ -4,8 +4,8 @@
 /*
  * types.h: Datatypes for MX.
  *
- * Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:	$Id: types.h 444 2019-08-06 13:11:41Z jacco $
+ * Copyright:	(c) 2014-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
+ * Version:	$Id: types.h 459 2022-01-29 19:31:00Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
