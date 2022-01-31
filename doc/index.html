@@ -1,5 +1,5 @@
 <html>
-  <!-- vim: set textwidth=100: -->
+  <!-- vim: set textwidth=100 columns=100: -->
   <head>
     <title>MX</title>
     <style>
@@ -38,10 +38,32 @@
         border: 1px solid black;
         background: #F0E0E0;
       }
-      img {
-        padding: 5px;
-        margin: 5px;
+      figure {
+        display: inline-block;
+        text-align: center;
+        background: #F8F8F0;
+        margin: 0px;
+        padding: 3px;
+      }
+      figure img {
         background: #F0F0E8;
+      }
+      figure figcaption {
+        font-style: italic;
+        text-align: center;
+        font-size: 90%;
+        margin-bottom: 2px;
+      }
+      figure.illustration {
+        float: right;
+      }
+      figure.illustration img {
+        margin: 5px;
+      }
+      figure.message img {
+        padding: 10px;
+        margin: 5px;
+        border: 1px dotted gray;
       }
       h2 {
         margin-left: -15px;
@@ -54,8 +76,8 @@
   <body>
     <pre>** Documentation for MX.
 **
-** Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
-** Version:	$Id: index.html 454 2020-10-22 09:05:36Z jacco $
+** Copyright:	(c) 2014-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
+** Version:	$Id: index.html 462 2022-01-31 10:21:39Z jacco $
 **
 ** This software is distributed under the terms of the MIT license. See
 ** http://www.opensource.org/licenses/mit-license.php for details.</pre>
@@ -102,12 +124,12 @@
       </li>
       <li>
         <p>
-          Finally, security was not a design consideration for MX. If you can connect to the master
-          component it is trivially easy to kill it with a hand-crafted message (indeed, this
-          message was specifically designed to make it so). This will then cause all other
-          components to exit too. Furthermore, components connect to each other without
-          any authentication, and messages are exchanged without any encryption. MX is expected to
-          run on a private network where all connected devices can be trusted.
+          Finally, security was not a big design consideration for MX. If you can connect to the
+          master component it is trivially easy to kill it with a hand-crafted message (in fact,
+          this message was specifically designed to make it so). This will then cause all other
+          components to exit too. Furthermore, components connect to each other without any
+          authentication, and messages are exchanged without any encryption. MX is expected to run
+          on a private network where all connected devices can be trusted.
         </p>
       </li>
     </ol>
@@ -123,7 +145,7 @@
         (known as <em>components</em>) to subscribe to certain types of messages. Other components
         can broadcast messages, and they will automatically be sent to those components that have
         subscribed to that particular message type. It is also possible for components to send
-        messages directly to another component, if that is needed.
+        messages directly to another component if needed.
       </p>
     </a>
     <a name="components"><h3>Master and client components</h3>
@@ -260,10 +282,7 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
         master component, giving the hostname where it runs and its MX name, along with the name
         under which the component itself wants to be known. Components that also want to assume the
         master role themselves should call <a href="#mxMaster">mxMaster</a> with just the
-        MX name and their own name.
-      </dd>
-      <dd>
-        Note, however, that only one component can be the master.
+        MX name and their own name. Note, however, that only one component can be the master.
       </dd>
       <dt>
         Register the message types you're interested in using <a href="#mxRegister">mxRegister</a>.
@@ -287,8 +306,8 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
     </dl>
     <h3>Message loop</h3>
     <p>
-      There are two ways to run the message loop: call the <a href="#mxRun">mxRun</a> function which
-      will handle everything for you and exit when the user calls <a
+      There are two ways to run the message loop: you can call the <a href="#mxRun">mxRun</a>
+      function which will handle everything for you and exit when the user calls <a
       href="#mxShutdown">mxShutdown</a>, or listen for events yourself and call the <a
       href="#mxProcessEvents">mxProcessEvents</a> function to have MX handle them.
     </p>
@@ -375,10 +394,11 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
       <p>
         If <span class="parameter">background</span> is set to <em>true</em>, this master component
         will put itself in the background after it has opened its listen socket. This is useful if
-        you are starting all components in a shell script: you can start the master component first,
-        have it put itself into the background and then start all additional client components. They
-        will find a listen port already waiting for them so they can connect to the master right
-        away.
+        you are starting all components in a shell script: you can start the master component first
+        and have it put itself into the background, which means the foreground process will exit.
+        Once the foreground process has exited you can start any additional client components which
+        will find the master component's listen port already waiting for them so they can connect to
+        the master component without delay.
       </p>
       <p>
         This "backgrounding" is done by using a <em>fork()</em> system call, which has the
@@ -779,7 +799,10 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
         MX messages consist of two parts: the <em>header</em> and the <em>payload</em>. The header
         has a fixed size of 12 bytes and looks like this:
       </p>
-      <img src="MsgHeader.png"/>
+      <figure class="message">
+        <img src="MsgHeader.png" alt="MX message header"/>
+        <figcaption>MX message header</figcaption>
+      </figure>
       <p>
         It contains:
       </p>
@@ -833,7 +856,10 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
       <dl>
         <a name="QuitRequest">
           <h4>QuitRequest (type 0)</h4>
-          <img src="MsgQuitRequest.png"/>
+          <figure class="message">
+            <img src="MsgQuitRequest.png" alt="MX QuitRequest message"/>
+            <figcaption>MX QuitRequest message</figcaption>
+          </figure>
           <p>
             This message type asks the master component to quit. It has type 0, version 0 and no
             payload, so it is the simplest message type, consisting of just 12 null-bytes. If the
@@ -843,7 +869,10 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
         </a>
         <a name="HelloRequest">
           <h4>HelloRequest (type 1)</h4>
-          <img src="MsgHelloRequest.png"/>
+          <figure class="message">
+            <img src="MsgHelloRequest.png" alt="MX HelloRequest message">
+            <figcaption>MX HelloRequest message</figcaption>
+          </figure>
           <p>
             This message is sent by normal components to the master to introduce themselves. It
             contains the component's name and the port on which it can be reached (the master
@@ -853,7 +882,10 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
         </a>
         <a name="HelloReply">
           <h4>HelloReply (type 2)</h4>
-          <img src="MsgHelloReply.png"/>
+          <figure class="message">
+            <img src="MsgHelloReply.png" alt="MX HelloReply message">
+            <figcaption>MX HelloReply message</figcaption>
+          </figure>
           <p>
             This message is sent by the master as a reply to a normal components <em><a
             href="#HelloRequest">HelloRequest</a></em> message. It informs the component of the
@@ -865,7 +897,10 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
         </a>
         <a name="HelloReport">
           <h4>HelloReport (type 3)</h4>
-            <img src="MsgHelloReport.png"/>
+            <figure class="message">
+              <img src="MsgHelloReport.png" alt="MX HelloReport message">
+              <figcaption>MX HelloReport message</figcaption>
+            </figure>
           <p>
             This message is sent by the master to all connected components to report a new
             component.
@@ -873,7 +908,10 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
         </a>
         <a name="HelloUpdate">
           <h4>HelloUpdate (type 4)</h4>
-            <img src="MsgHelloUpdate.png"/>
+            <figure class="message">
+              <img src="MsgHelloUpdate.png" alt="MX HelloUpdate message">
+              <figcaption>MX HelloUpdate message</figcaption>
+            </figure>
           <p>
             This message is sent by clients after they've connected to another client to introduce
             themselves.
@@ -881,14 +919,20 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
         </a>
         <a name="RegisterRequest">
           <h4>RegisterRequest (type 5)</h4>
-            <img src="MsgRegisterRequest.png"/>
+            <figure class="message">
+              <img src="MsgRegisterRequest.png" alt="MX RegisterRequest message">
+              <figcaption>MX RegisterRequest message</figcaption>
+            </figure>
           <p>
             This message is sent by normal components to the master to register a message type.
           </p>
         </a>
         <a name="RegisterReply">
           <h4>RegisterReply (type 6)</h4>
-            <img src="MsgRegisterReply.png"/>
+            <figure class="message">
+              <img src="MsgRegisterReply.png" alt="MX RegisterReply message">
+              <figcaption>MX RegisterReply message</figcaption>
+            </figure>
           <p>
             This message is sent by the master to a normal component as a reply to a register
             request.
@@ -896,7 +940,10 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
         </a>
         <a name="RegisterReport">
           <h4>RegisterReport (type 7)</h4>
-            <img src="MsgRegisterReport.png"/>
+            <figure class="message">
+              <img src="MsgRegisterReport.png" alt="MX RegisterReport message">
+              <figcaption>MX RegisterReport message</figcaption>
+            </figure>
           <p>
             This message is sent from the master to a normal component to report a newly registered
             message.
@@ -904,7 +951,10 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
         </a>
         <a name="SubscribeUpdate">
           <h4>SubscribeUpdate (type 8)</h4>
-            <img src="MsgSubscribeUpdate.png"/>
+            <figure class="message">
+              <img src="MsgSubscribeUpdate.png" alt="MX SubscribeUpdate message">
+              <figcaption>MX SubscribeUpdate message</figcaption>
+            </figure>
           <p>
             This message is sent between normal components to tell the recipient about a new
             subscription by the sender.
@@ -912,7 +962,10 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
         </a>
         <a name="CancelUpdate">
           <h4>CancelUpdate (type 9)</h4>
-            <img src="MsgCancelUpdate.png"/>
+            <figure class="message">
+              <img src="MsgCancelUpdate.png" alt="MX CancelUpdate message">
+              <figcaption>MX CancelUpdate message</figcaption>
+            </figure>
           <p>
             This message is sent between normal components to tell the recipient about a cancelled
             subscription by the sender.
@@ -920,144 +973,152 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
         </a>
       </ol>
     </a>
-    <a name="InitialConnection">
-      <h3>Initial connection</h3>
-    </a>
-    <img align="right" src="Connection.png"/>
-    <p>
-      This section describes how a new component is added to an existing message exchange. We'll
-      assume that we already have a master (<em>M</em>) and a component (<em>C1</em>) running.
-      These are the events that take place after our new component, <em>C2</em> is started:
-    </p>
-    <ol>
-      <li>
-        <p>
-          At some point, C2 calls the <a href="#mxClient">mxClient</a> function.
-        </p>
-        <p>
-          This function opens a listen socket, but <em>without</em> binding it to a port number. In
-          this case the operating system chooses a random free port and binds the listen socket to
-          it. The <a href="#mxClient">mxClient</a> function then connects to the master and sends
-          a <em><a href="#HelloRequest">HelloRequest</a></em> message containing the component's
-          name and the listen port number that the OS has chosen. The master stores these attributes
-          for C2, along with its host name, which it determines by looking at the
-          "peer name" of the component's TCP connection.
-        </p>
-      </li>
-      <li>
-        <p>
-          The master replies to the <em><a href="#HelloRequest">HelloRequest</a></em> message with a
-          <em><a href="#HelloReply">HelloReply</a></em> message. This contains the name that the
-          master is running under.
-        </p>
-        <p>
-          Usually, the master role will be fullfilled by the <em>mx</em> executable, and in this
-          case its name will simply be "master". But it is also possible for another component to
-          fullfill this role (by calling the <a href="#mxMaster">mxMaster</a> function instead of <a
-          href="#mxClient">mxClient</a>), and in that case it may be running under a different name.
-        </p>
-      </li>
-      <li>
-        <p>
-          For each component that the master already knows about (which is only C1 in this example),
-          it sends a <em><a href="#HelloReport">HelloReport</a></em> back to C2. These messages
-          contain the name, hostname and listen port of an existing component.
-        </p>
-      </li>
-      <li>
-        <p>
-          Next, the master sends a <em><a href="#RegisterReport">RegisterReport</a></em> message
-          to C2 for each message type that has already been registered.
-        </p>
-      </li>
-      <li>
-        <p>
-          Finally, the master sends C2 a <em><a href="#SubscribeUpdate">SubscribeUpdate</a></em>
-          message for each of its subscriptions.
-        </p>
-      </li>
-    </ol>
-    <p>
-      At this point the master component considers its work done and returns to listening for
-      new connections and messages.
-    </p>
-    <ol start="6"/>
-      <li>
-        <p>
-          For each <em><a href="#HelloReport">HelloReport</a></em> message that C2
-          receives, it connects to the existing component and sends it a <em><a
-          href="#HelloUpdate">HelloUpdate</a></em> message to introduce itself. This message
-          contains only C2's name.
-        </p>
-      </li>
-      <li>
-        <p>
-          C2 also sends the existing component a <em><a
-          href="#SubscribeUpdate">SubscribeUpdate</a></em> message for each of its subscriptions.
-        </p>
-      </li>
-      <li>
-        <p>
-          At the same time, C1 responds to the new connection by sending <em>its</em> subscriptions
-          to C2, again using <em><a href="#SubscribeUpdate">SubscribeUpdate</a></em> messages
-        </p>
-      </li>
-    </ol>
-    <p>
-      After this, C2 is fully integrated into the MX system.
-    </p>
-    <p>
-      It is worth noting that the <em><a href="#SubscribeUpdate">SubscribeUpdate</a></em> messages
-      being sent to-and-fro are not unique to the setup phase. If a component calls the <a
-      href="#mxSubscribe">mxSubscribe</a> function at any later time, the same message type is used
-      to communicate the new subscription to all other components.
-    </p>
     <a name="RegisteringMessages">
       <h3>Registering messages</h3>
+      <p>
+        Messages are identified with a <em>name</em> and a numeric message <em>type</em>.
+        Registering a message is a way to link an ASCII name (which is more convenient for the user)
+        with an integer type (which is more convenient for the system). Each name has one and only
+        one associated type, so if multiple components register messages with the same name, they
+        are guaranteed to get the same type. Messages are registered once before their first use,
+        and solely referenced by their type after that.
+      </p>
+      <p>
+        Messages are registered using the <a href="#mxRegister">mxRegister</a> function. First of
+        all, this function checks the local database to see if it already knows about the given
+        message, If so, it immediately returns the associated message type to the caller. Otherwise
+        it sends a <em><a href="#RegisterRequest">RegisterRequest</a></em> message to the master.
+      </p>
+      <p>
+        When the master receives the <em><a href="#RegisterRequest">RegisterRequest</a></em>
+        message, it checks <em>its</em> database for the given message name. If found, it retrieves
+        the associated type. Otherwise a new type is generated (simply by increasing a counter) and
+        stored in the database, along with the name. The message type is then returned to the
+        component in a <em><a href="#RegisterReply">RegisterReply</a></em> message.
+      </p>
+      <p>
+        If the master had to generate a new type it also sends all other existing components a
+        <em><a href="#RegisterReport">RegisterReport</a></em> message to inform them of the new
+        message type (this is the reason that a component might already have the message type in its
+        local database, even though no <a href="#mxRegister">mxRegister</a> call has yet been made
+        for it).
+      </p>
+      <p>
+        When the component receives the <em><a href="#RegisterReply">RegisterReply</a></em> message
+        it stores the message's name and associated type in its database, and the <a
+        href="#mxRegister">mxRegister</a> function returns the new message type.
+      </p>
+      <p>
+        All message names are associated with a unique message type, but not all message types have
+        to have an associated message name. Components can ask the master for a unique message type
+        that <em>isn't</em> associated with a message name. They do this by calling the <a
+        href="#mxRegister">mxRegister</a> function with a <tt>NULL</tt> message name, and they will
+        get a unique message type every time. This can then be distributed to other components, and
+        used without the fear of getting message type collisions.
+      </p>
     </a>
-    <p>
-      Messages are identified with a <em>name</em> and a numeric message <em>type</em>. Registering
-      a message is a way to link an ASCII name (which is more convenient for the user) with an
-      integer type (which is more convenient for the system). Each name has one and only one
-      associated type, so if multiple components register messages with the same name, they are
-      guaranteed to get the same type. Messages are registered once before their first use, and are
-      then solely referenced by their type.
-    </p>
-    <p>
-      Messages are registered using the <a href="#mxRegister">mxRegister</a> function. First of all,
-      this function checks the local database to see if it already knows about the given message,
-      If so, it immediately returns the associated message type to the caller. Otherwise it sends a
-      <em><a href="#RegisterRequest">RegisterRequest</a></em> message to the master.
-    </p>
-    <p>
-      When the master receives the <em><a href="#RegisterRequest">RegisterRequest</a></em>
-      message, it checks <em>its</em> database for the given message name. If found, it retrieves
-      the associated type. Otherwise a new type is generated (simply by increasing a counter) and
-      stored in the database, along with the name. The message type is then returned to the
-      component in a <em><a href="#RegisterReply">RegisterReply</a></em> message.
-    </p>
-    <p>
-      If the master had to generate a new type it also sends all other existing components a <em><a
-      href="#RegisterReport">RegisterReport</a></em> message to inform them of the new message
-      type (this is the reason that a component might already have the message type in its local
-      database, even though no <a href="#mxRegister">mxRegister</a> call has yet been made for it).
-    </p>
-    <p>
-      When the component receives the <em><a href="#RegisterReply">RegisterReply</a></em> message
-      it stores the message's name and associated type in its database, and the <a
-      href="#mxRegister">mxRegister</a> function returns the new message type.
-    </p>
-    <p>
-      All message names are associated with a unique message type, but not all message types have to
-      have an associated message name. Components can ask the master for a unique message type that
-      <em>isn't</em> associated with a message name. They do this by calling the <a
-      href="#mxRegister">mxRegister</a> function with a <tt>NULL</tt> message name, and they will
-      get a unique message type every time. This can then be distributed to other components, and
-      used without the fear of getting message type collisions.
-    </p>
+    <a name="InitialConnection">
+      <h3>Initial connection</h3>
+      <figure class="illustration">
+        <img src="Connection.png" alt="Messages exchanged on initial connection"/>
+        <figcaption>Messages exchanged on initial connection</figcaption>
+      </figure>
+      <p>
+        This section describes how a new component is added to an existing message exchange. We'll
+        assume that we already have a master (<em>M</em>) and a component (<em>C1</em>) running.
+        These are the events that take place when the new component, <em>C2</em> calls the
+        <a href="#mxClient">mxClient</a> function:
+      </p>
+      <ol>
+        <li>
+          <p>
+            <a href="#mxClient">mxClient</a> opens a listen socket, but <em>without</em> binding it
+            to a port number, in which case the operating system chooses a random free port and
+            binds the listen socket to it. The <a href="#mxClient">mxClient</a> function then
+            connects to the master and sends a <em><a href="#HelloRequest">HelloRequest</a></em>
+            message containing the component's name and the listen port number that the OS has
+            chosen. The master stores these attributes for C2, along with its host name, which it
+            determines by looking at the "peer name" of the component's TCP connection.
+          </p>
+        </li>
+        <li>
+          <p>
+            The master replies to the <em><a href="#HelloRequest">HelloRequest</a></em> message with
+            a <em><a href="#HelloReply">HelloReply</a></em> message. This contains the name that the
+            master is running under.
+          </p>
+          <p>
+            Usually, the master role will be fullfilled by the <em>mx</em> executable, and in this
+            case its name will simply be "master". But it is also possible for another component to
+            fullfill this role (by calling the <a href="#mxMaster">mxMaster</a> function instead of
+            <a href="#mxClient">mxClient</a>), and in that case it may be running under a different
+            name.
+          </p>
+        </li>
+        <li>
+          <p>
+            For each component that the master already knows about (only C1 in this example but
+            there can be more), it sends a <em><a href="#HelloReport">HelloReport</a></em> back to
+            C2. These messages contain the name, hostname and listen port of an existing component.
+          </p>
+        </li>
+        <li>
+          <p>
+            Next, the master sends a <em><a href="#RegisterReport">RegisterReport</a></em> message
+            to C2 for each message type that has already been registered.
+          </p>
+        </li>
+        <li>
+          <p>
+            Finally, the master sends C2 a <em><a href="#SubscribeUpdate">SubscribeUpdate</a></em>
+            message for each of its subscriptions.
+          </p>
+        </li>
+      </ol>
+      <p>
+        At this point the master component considers its work done and returns to listening for
+        new connections and messages.
+      </p>
+      <ol start="6"/>
+        <li>
+          <p>
+            For each <em><a href="#HelloReport">HelloReport</a></em> message that was received, the
+            <a href="#mxClient">mxClient</a> function connects to the component described in the
+            message and sends it a <em><a href="#HelloUpdate">HelloUpdate</a></em> message to
+            introduce the new component C2. This message contains only C2's name.
+          </p>
+        </li>
+        <li>
+          <p>
+            It then sends the existing component a <em><a
+            href="#SubscribeUpdate">SubscribeUpdate</a></em> message for each of its subscriptions.
+          </p>
+        </li>
+        <li>
+          <p>
+            At the same time, C1 responds to the new connection by sending <em>its</em>
+            subscriptions to C2, again using <em><a href="#SubscribeUpdate">SubscribeUpdate</a></em>
+            messages
+          </p>
+        </li>
+      </ol>
+      <p>
+        After this, C2 is fully integrated into the MX system and <a href="#mxClient">mxClient</a>
+        returns.
+      </p>
+      <p>
+        It is worth noting that the <em><a href="#SubscribeUpdate">SubscribeUpdate</a></em> messages
+        being sent to-and-fro are not unique to the setup phase. If a component calls the <a
+        href="#mxSubscribe">mxSubscribe</a> function at any later time, the same message type is
+        used to communicate the new subscription to all other components.
+      </p>
+    </a>
     <a name="threads">
       <h3>Threads</h3>
-      <img align="right" src="Threads.png"/>
+      <figure class="illustration">
+        <img src="Threads.png" alt="Threads running in an MX component"/>
+        <figcaption>Threads running in an MX component</figcaption>
+      </figure>
       <p>
         This section describes the threads associated with an MX component.
       </p>
