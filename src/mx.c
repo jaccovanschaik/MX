@@ -1,8 +1,8 @@
 /*
  * mx.c: The "mx" executable.
  *
- * Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:	$Id: mx.c 451 2020-10-21 21:15:06Z jacco $
+ * Copyright:	(c) 2014-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
+ * Version:	$Id: mx.c 459 2022-01-29 19:31:00Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
@@ -265,7 +265,8 @@ static void mx_list_on_timeout(MX *mx, uint32_t id, double t, void *udata)
                  sub = mlNext(&comp->subscriptions, sub)) {
                 if (verbosity == 2 || sub->msg->msg_type >= NUM_MX_MESSAGES) {
                     fprintf(stdout, "\t%d (%s)\n",
-                            sub->msg->msg_type, sub->msg->msg_name);
+                            sub->msg->msg_type,
+                            sub->msg->msg_name ? sub->msg->msg_name : "");
                 }
             }
         }

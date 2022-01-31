@@ -1,7 +1,7 @@
 # Makefile: Description
 #
-# Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
-# Version:	$Id: Makefile 419 2017-05-14 16:50:53Z jacco $
+# Copyright:	(c) 2014-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
+# Version:	$Id: Makefile 462 2022-01-31 10:21:39Z jacco $
 #
 # This software is distributed under the terms of the MIT license. See
 # http://www.opensource.org/licenses/mit-license.php for details.
@@ -25,7 +25,7 @@ SVG = $(patsubst %.png,%.svg,$(PNG))
 all install: $(PNG)
 
 %.png: %.svg
-	-inkscape --export-area-drawing --export-dpi=150 --export-png=$@ $<
+	-inkscape --export-area-drawing --export-dpi=150 --export-filename=$@ $<
 
 clean:
 	rm -f $(PNG)

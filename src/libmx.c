@@ -1,8 +1,8 @@
 /*
  * libmx.c: Main interface to libmx.
  *
- * Copyright: (c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:   $Id: libmx.c 451 2020-10-21 21:15:06Z jacco $
+ * Copyright: (c) 2014-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
+ * Version:   $Id: libmx.c 460 2022-01-29 19:32:32Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.
@@ -959,7 +959,7 @@ static void *mx_writer_thread(void *arg)
         }
     }
 
-    bufReset(&outgoing);
+    bufRewind(&outgoing);
 
     return NULL;
 }
@@ -1048,7 +1048,7 @@ static void mx_destroy_component(MX *mx, MX_Component *comp)
 {
     MX_Await *await;
 
-    bufReset(&comp->incoming);
+    bufRewind(&comp->incoming);
 
     pthread_rwlock_destroy(&comp->await_lock);
 

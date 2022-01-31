@@ -4,9 +4,9 @@
 '''
   Messages.py: Defines the application messages exchanged between components.
 
-  Copyright: (c) 2016 Jacco van Schaik (jacco@jaccovanschaik.net)
+  Copyright: (c) 2016-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
   Created:   2016-08-03
-  Version:   $Id: Messages.py 426 2017-05-26 11:03:08Z jacco $
+  Version:   $Id: Messages.py 461 2022-01-31 09:02:30Z jacco $
 
   This software is distributed under the terms of the MIT license. See
   http://www.opensource.org/licenses/mit-license.php for details.
