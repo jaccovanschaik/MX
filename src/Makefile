@@ -1,6 +1,6 @@
 # Makefile.
 #
-# Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
+# Copyright:	(c) 2014-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
 # Version:	$Id: Makefile 442 2019-07-29 10:01:49Z jacco $
 #
 # This software is distributed under the terms of the MIT license. See
@@ -57,7 +57,9 @@ cmd.h: cmd.txt Makefile
 	./gen_enum -h -t MX_CommandType -p MX_CT -n NUM_COMMANDS $< > $@
 
 version.h:
-	-svn update && echo "#define VERSION \"`svnversion`\"" > version.h
+	echo "#define VERSION" \
+        \"$$(git log -n 1 --format=%cd --date=format:%Y-%m-%d/%H:%M:%S)\" \
+        > version.h
 
 clean:
 	rm -f *.o libmx.a libmx.so mx core libmx.tgz version.h \
