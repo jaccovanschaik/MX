@@ -2,7 +2,7 @@
  * ping.c: Broadcasts "Ping" messages at regular intervals.
  *
  * Copyright:	(c) 2014-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
- * Version:	$Id: ping.c 330 2016-07-21 11:20:35Z jacco $
+ * Version:	$Id: ping.c 461 2022-01-31 09:02:30Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
  * http://www.opensource.org/licenses/mit-license.php for details.

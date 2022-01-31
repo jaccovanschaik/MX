@@ -6,7 +6,7 @@
 
   Copyright: (c) 2016-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
   Created:   2016-08-03
-  Version:   $Id: Pack.py 435 2018-10-05 17:23:27Z jacco $
+  Version:   $Id: Pack.py 461 2022-01-31 09:02:30Z jacco $
 
   This software is distributed under the terms of the MIT license. See
   http://www.opensource.org/licenses/mit-license.php for details.
