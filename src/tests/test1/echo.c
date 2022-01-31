@@ -1,7 +1,7 @@
 /*
  * echo.c: Receives "Ping" messages, responds with "Echo" messages.
  *
- * Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
+ * Copyright:	(c) 2014-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
  * Version:	$Id: echo.c 371 2016-08-23 10:17:47Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See

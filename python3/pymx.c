@@ -1,6 +1,6 @@
 /* pymx.c: Description
  *
- * Copyright: (c) 2016 Jacco van Schaik (jacco@jaccovanschaik.net)
+ * Copyright: (c) 2016-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
  * Created:   2016-07-06
  * Version:   $Id: pymx.c 456 2020-10-22 10:35:42Z jacco $
  *

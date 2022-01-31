@@ -1,7 +1,7 @@
 /*
  * observer.c: Observe and log the interactions between the components.
  *
- * Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
+ * Copyright:	(c) 2014-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
  * Version:	$Id: observer.c 421 2017-05-14 16:51:31Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See

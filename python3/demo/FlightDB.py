@@ -4,7 +4,7 @@
 '''
   FlightDB.py: The "database" holding flights.
 
-  Copyright: (c) 2016 Jacco van Schaik (jacco@jaccovanschaik.net)
+  Copyright: (c) 2016-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
   Created:   2016-08-03
   Version:   $Id: FlightDB.py 426 2017-05-26 11:03:08Z jacco $
 
