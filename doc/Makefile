@@ -25,7 +25,7 @@ SVG = $(patsubst %.png,%.svg,$(PNG))
 all install: $(PNG)
 
 %.png: %.svg
-	-inkscape --export-area-drawing --export-dpi=150 --export-filename=$@ $<
+	-inkscape --export-area-drawing --export-dpi=150 --export-png=$@ $<
 
 clean:
 	rm -f $(PNG)
