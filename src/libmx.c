@@ -998,7 +998,7 @@ static void mx_stop_writer_thread(MX *mx, MX_Component *comp)
 }
 
 /*
- * Create (and enable) a component to <comp> via <fd>.
+ * Create a new component in <mx>.
  */
 static MX_Component *mx_create_component(MX *mx)
 {
@@ -1079,7 +1079,7 @@ static void mx_destroy_component(MX *mx, MX_Component *comp)
 }
 
 /*
- * Find the subscription of <comp> in <msg>.
+ * Find the subscription to <msg> in <comp>.
  */
 static MX_Subscription *mx_find_subscription_for_comp(MX_Message *msg, MX_Component *comp)
 {
@@ -1094,7 +1094,7 @@ static MX_Subscription *mx_find_subscription_for_comp(MX_Message *msg, MX_Compon
 }
 
 /*
- * Find the subscription to <msg> in <comp>.
+ * Find the subscription from <comp> in <msg>.
  */
 static MX_Subscription *mx_find_subscription_to_msg(MX_Component *comp, MX_Message *msg)
 {
@@ -1840,7 +1840,8 @@ static MX *mx_create_master(const char *mx_name, const char *my_name)
     MX *mx = calloc(1, sizeof(*mx));
 
     if ((mx->listen_fd = tcpListen(NULL, mx_port)) == -1) {
-        mx_error("couldn't open a listen socket (%s)\n", strerror(errno));
+        mx_error("couldn't open listen socket on port %d (%s)\n",
+                mx_port, strerror(errno));
         free(mx);
         return NULL;
     }

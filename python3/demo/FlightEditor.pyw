@@ -4,7 +4,7 @@
 '''
   FlightEditor.pyw: Editor for flights.
 
-  Copyright: (c) 2016 Jacco van Schaik (jacco@jaccovanschaik.net)
+  Copyright: (c) 2016-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
   Created:   2016-08-03
   Version:   $Id: FlightEditor.pyw 456 2020-10-22 10:35:42Z jacco $
 
