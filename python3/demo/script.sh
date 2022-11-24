@@ -2,18 +2,19 @@
 
 # script.sh: Run the demo application.
 #
-# Author:    Jacco van Schaik (jacco.van.schaik@dnw.aero)
-# Copyright: (c) 2016 DNW German-Dutch Windtunnels
+# Copyright: (c) 2016- 2022 Jacco van Schaik (jacco@jaccovanschaik.net)
 # Created:   2016-08-04
-# Version:   $Id: script.sh 451 2020-10-21 21:15:06Z jacco $
+#
+# This software is distributed under the terms of the MIT license. See
+# http://www.opensource.org/licenses/mit-license.php for details.
 
 mx master -b
 
-echo "The MX name is:" `mx name`
-echo "The MX port is:" `mx port`
-echo "\nList the participating components with 'mx list'"
-echo "Show the current version of MX with 'mx version'"
-echo "\nUse 'mx quit' to stop the demo."
+printf "The MX name is: %s\n" $(mx name)
+printf "The MX port is: %s\n" $(mx port)
+printf "\nList the participating components with 'mx list'\n"
+printf "Show the current version of MX with 'mx version'\n"
+printf "\nUse 'mx quit' to stop the demo.\n"
 
 python3 FlightDB.py &
 python3 FlightEditor.pyw &

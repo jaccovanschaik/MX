@@ -4,10 +4,11 @@
 '''
   hexdump.py: Hexdump function.
 
-  Author:	Jacco van Schaik (jacco.van.schaik@dnw.aero)
-  Copyright:	(c) 2011 DNW German-Dutch Windtunnels
-  Created:	2011-03-09
-  Version:	$Id: hexdump.py 426 2017-05-26 11:03:08Z jacco $
+  Copyright: (c) 2011-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
+  Created:   2011-03-09
+
+  This software is distributed under the terms of the MIT license. See
+  http://www.opensource.org/licenses/mit-license.php for details.
 '''
 
 __version__ = '$Revision: 426 $'
