@@ -8,6 +8,12 @@
 # This software is distributed under the terms of the MIT license. See
 # http://www.opensource.org/licenses/mit-license.php for details.
 
+# export MX_HOST=home
+
+# ssh -f home MX_HOME=$MX_HOME mx master
+
+# sleep 1
+
 mx master -b
 
 printf "The MX name is: %s\n" $(mx name)

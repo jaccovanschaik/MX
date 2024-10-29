@@ -4,7 +4,7 @@
 '''
   FlightDB.py: The "database" holding flights.
 
-  Copyright: (c) 2016-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
+  Copyright: (c) 2016-2024 Jacco van Schaik (jacco@jaccovanschaik.net)
   Created:   2016-08-03
   Version:   $Id: FlightDB.py 461 2022-01-31 09:02:30Z jacco $
 
@@ -31,7 +31,7 @@ class FlightDB(object):
 
     # Contact the MX master at localhost, tell him my name is "FlightDB".
 
-    self._mx = MX(mx_host = 'localhost', my_name = 'FlightDB')
+    self._mx = MX(mx_host = MX.effectiveHost(), my_name = 'FlightDB')
 
     # Register the messages I want to subscribe to...
 

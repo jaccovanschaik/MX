@@ -1,6 +1,6 @@
 # Makefile: Description
 #
-# Copyright: (c) 2017 Jacco van Schaik (jacco@jaccovanschaik.net)
+# Copyright: (c) 2017-2024 Jacco van Schaik (jacco@jaccovanschaik.net)
 # Created:   2017-05-13
 # Version:   $Id: Makefile 461 2022-01-31 09:02:30Z jacco $
 #
@@ -8,7 +8,7 @@
 # http://www.opensource.org/licenses/mit-license.php for details.
 
 clean:
-	$(RM) -r *.pyc __pycache__
+	$(RM) -r core core-* *.pyc __pycache__
 
 all:
 

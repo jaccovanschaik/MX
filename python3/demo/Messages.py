@@ -4,7 +4,7 @@
 '''
   Messages.py: Defines the application messages exchanged between components.
 
-  Copyright: (c) 2016-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
+  Copyright: (c) 2016-2024 Jacco van Schaik (jacco@jaccovanschaik.net)
   Created:   2016-08-03
   Version:   $Id: Messages.py 461 2022-01-31 09:02:30Z jacco $
 

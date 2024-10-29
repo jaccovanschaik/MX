@@ -6,10 +6,11 @@
 
   Copyright: (c) 2016-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
   Created:   2016-08-03
-  Version:   $Id: FlightEditor.pyw 456 2020-10-22 10:35:42Z jacco $
 
   This software is distributed under the terms of the MIT license. See
   http://www.opensource.org/licenses/mit-license.php for details.
+
+  vim: softtabstop=4 shiftwidth=4 expandtab textwidth=100 columns=100
 '''
 
 import sys, time
@@ -53,7 +54,7 @@ class FlightEditor(QApplication):
 
     # Contact the MX master at localhost, and tell him my name is "FlightEditor".
 
-    self._mx = MX(my_name = 'FlightEditor', mx_host = 'localhost')
+    self._mx = MX(my_name = 'FlightEditor', mx_host = MX.effectiveHost())
 
     # Register the messages I'm going to send,
 

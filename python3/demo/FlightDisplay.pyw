@@ -7,7 +7,7 @@
   If the --gate/-g option is given, followed by a gate name, only flights arriving or departing at
   that gate will be shown. Otherwise all flights are shown.
 
-  Copyright: (c) 2016-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
+  Copyright: (c) 2016-2024 Jacco van Schaik (jacco@jaccovanschaik.net)
   Created:   2016-08-03
   Version:   $Id: FlightDisplay.pyw 456 2020-10-22 10:35:42Z jacco $
 
@@ -73,7 +73,7 @@ class FlightDisplay(QApplication):
 
     # Contact the MX master at localhost, and tell him my name is "FlightDisplay".
 
-    self._mx = MX(my_name = 'FlightDisplay', mx_host = 'localhost')
+    self._mx = MX(my_name = 'FlightDisplay', mx_host = MX.effectiveHost())
 
     # Register the message I want to subscribe to...
 

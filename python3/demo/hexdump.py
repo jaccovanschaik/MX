@@ -4,7 +4,7 @@
 '''
   hexdump.py: Hexdump function.
 
-  Copyright: (c) 2011-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
+  Copyright: (c) 2011-2024 Jacco van Schaik (jacco@jaccovanschaik.net)
   Created:   2011-03-09
 
   This software is distributed under the terms of the MIT license. See

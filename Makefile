@@ -1,6 +1,6 @@
 # Makefile: Top-level makefile.
 #
-# Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
+# Copyright:	(c) 2014-2024 Jacco van Schaik (jacco@jaccovanschaik.net)
 # Version:	$Id: Makefile 457 2020-10-22 10:40:07Z jacco $
 #
 # This software is distributed under the terms of the MIT license. See
