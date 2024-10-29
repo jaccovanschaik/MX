@@ -127,6 +127,11 @@ int mxRun(MX *mx);
 const char *mxMyName(const MX *mx);
 
 /*
+ * Return the ID of the local component.
+ */
+uint16_t mxMyID(const MX *mx);
+
+/*
  * Return the current MX name.
  */
 const char *mxName(const MX *mx);

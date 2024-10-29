@@ -1,7 +1,7 @@
 /*
  * libmx.c: Main interface to libmx.
  *
- * Copyright: (c) 2014-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
+ * Copyright: (c) 2014-2024 Jacco van Schaik (jacco@jaccovanschaik.net)
  * Version:   $Id: libmx.c 460 2022-01-29 19:32:32Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
@@ -1016,6 +1016,36 @@ static MX_Component *mx_create_component(MX *mx)
 }
 
 /*
+ * Count the number of components known to <mx>. If <name> is not NULL, only
+ * the components whose name begins with <name> are counted.
+ */
+static uint16_t mx_count_components(const MX *mx, const char *name)
+{
+    int component_count = paCount(&mx->components);
+    int found = 0;
+    int name_len = name ? strlen(name) : 0;
+
+    for (int i = 0; i < component_count; i++) {
+        MX_Component *comp = paGet(&mx->components, i);
+
+        if (comp == NULL) {
+            continue;
+        }
+        else if (name == NULL) {
+            found++;
+        }
+        else if (comp->name == NULL) {
+            continue;
+        }
+        else if (strncmp(name, comp->name, name_len) == 0) {
+            found++;
+        }
+    }
+
+    return found;
+}
+
+/*
  * Destroy all subscriptions by component <comp>.
  */
 static void mx_destroy_component_subscriptions(MX_Component *comp)
@@ -1250,12 +1280,14 @@ static void mx_handle_hello_report(MX *mx, int fd,
     char *name;
     char *host;
     uint16_t port;
+    uint16_t id;
 
     MX_Subscription *sub;
     MX_Component *comp;
 
     strunpack(payload, size,
             PACK_STRING,    &name,
+            PACK_INT16,     &id,
             PACK_STRING,    &host,
             PACK_INT16,     &port,
             END);
@@ -1279,6 +1311,7 @@ static void mx_handle_hello_report(MX *mx, int fd,
     comp->host = host;
     comp->port = port;
     comp->fd   = fd;
+    comp->id   = id;
 
     paSet(&mx->components, comp->fd, comp);
 
@@ -1289,6 +1322,8 @@ static void mx_handle_hello_report(MX *mx, int fd,
 
     mx_pack(comp, MX_MT_HELLO_UPDATE, 0,
             PACK_STRING,    mx->me->name,
+            PACK_INT16,     mx->me->id,
+            PACK_INT16,     mx->me->port,
             END);
 
     /* And inform it of all of our subscriptions. */
@@ -1318,11 +1353,13 @@ static void mx_handle_hello_update(MX *mx, int fd,
 
     char *name;
     uint16_t port;
+    uint16_t id;
 
     MX_Component *comp = paGet(&mx->components, fd);
 
     strunpack(payload, size,
             PACK_STRING, &name,
+            PACK_INT16,  &id,
             PACK_INT16,  &port,
             END);
 
@@ -1334,6 +1371,7 @@ static void mx_handle_hello_update(MX *mx, int fd,
     comp->name = name;
     comp->host = strdup(netPeerHost(fd));
     comp->port = port;
+    comp->id   = id;
 
     /* Inform the new component of all of my subscriptions. */
 
@@ -1362,8 +1400,6 @@ static void mx_handle_hello_request(MX *mx, int fd,
     uint16_t port;
     MX_Subscription *sub;
 
-    MX_Component *comp = paGet(&mx->components, fd);
-
     strunpack(payload, size,
             PACK_STRING,    &name,
             PACK_INT16,     &port,
@@ -1371,17 +1407,30 @@ static void mx_handle_hello_request(MX *mx, int fd,
 
     free(payload);
 
+    MX_Component *comp = paGet(&mx->components, fd);
+
+    dbgAssert(stderr, comp != NULL,
+            "HELLO request from unconnected component?!\n");
+
     dbgAssert(stderr, comp->name == NULL,
             "Expected comp->name to be NULL instead of \"%s\"\n", comp->name);
 
-    comp->name = name;
+    int name_len = asprintf(&comp->name, "%s/%u",
+            name, mx_count_components(mx, name) + 1);
+
+    dbgAssert(stderr, name_len != -1, "Could not create component name.\n");
+
+    comp->id   = mx_count_components(mx, NULL);
     comp->host = strdup(netPeerHost(fd));
     comp->port = port;
 
-    /* Tell it my name (which may be different from "master". */
+    /* Tell it my name (which may be different from "master"), its new id and
+     * its new name. */
 
     mx_pack(comp, MX_MT_HELLO_REPLY, 0,
             PACK_STRING,    mx->me->name,
+            PACK_INT16,     comp->id,
+            PACK_STRING,    comp->name,
             END);
 
     /* Inform the new component of alle existing components. */
@@ -1389,10 +1438,12 @@ static void mx_handle_hello_request(MX *mx, int fd,
     for (fd = 0; fd < paCount(&mx->components); fd++) {
         MX_Component *existing = paGet(&mx->components, fd);
 
-        if (existing == NULL || existing == comp || existing->name == NULL) continue;
+        if (existing == NULL || existing == comp || existing->name == NULL)
+            continue;
 
         mx_pack(comp, MX_MT_HELLO_REPORT, 0,
                 PACK_STRING,    existing->name,
+                PACK_INT16,     existing->id,
                 PACK_STRING,    existing->host,
                 PACK_INT16,     existing->port,
                 END);
@@ -1856,6 +1907,7 @@ static MX *mx_create_master(const char *mx_name, const char *my_name)
     mx->me->host = strdup("localhost");
     mx->me->name = strdup(my_name);
     mx->me->port = mx_port;
+    mx->me->id   = 0;
 
     mx->mx_name = strdup(mx_name);
 
@@ -1914,12 +1966,15 @@ static int mx_begin(MX *mx)
                 END);
 
         if (r != 0) {
-            mx_error("%s while waiting for HelloReply.\n", r == 1 ? "timeout" : "error");
+            mx_error("%s while waiting for HelloReply.\n",
+                    r == 1 ? "timeout" : "error");
             return -1;
         }
 
         strunpack(reply_payload, reply_size,
                 PACK_STRING, &mx->master->name,
+                PACK_INT16,  &mx->me->id,
+                PACK_STRING, &mx->me->name,
                 END);
 
         free(reply_payload);
@@ -2121,6 +2176,14 @@ int mxRun(MX *mx)
 const char *mxMyName(const MX *mx)
 {
     return mx->me->name;
+}
+
+/*
+ * Return the ID of the local component.
+ */
+uint16_t mxMyID(const MX *mx)
+{
+    return mx->me->id;
 }
 
 /*
