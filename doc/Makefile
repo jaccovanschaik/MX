@@ -1,6 +1,6 @@
 # Makefile: Description
 #
-# Copyright:	(c) 2014-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
+# Copyright:	(c) 2014-2024 Jacco van Schaik (jacco@jaccovanschaik.net)
 # Version:	$Id: Makefile 462 2022-01-31 10:21:39Z jacco $
 #
 # This software is distributed under the terms of the MIT license. See
