@@ -4,7 +4,7 @@
 '''
   FlightEditor.pyw: Editor for flights.
 
-  Copyright: (c) 2016-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
+  Copyright: (c) 2016-2025 Jacco van Schaik (jacco@jaccovanschaik.net)
   Created:   2016-08-03
 
   This software is distributed under the terms of the MIT license. See
