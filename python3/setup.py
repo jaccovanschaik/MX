@@ -4,7 +4,7 @@
 '''
   setup.py: Description
 
-  Copyright: (c) 2016-2024 Jacco van Schaik (jacco@jaccovanschaik.net)
+  Copyright: (c) 2016-2025 Jacco van Schaik (jacco@jaccovanschaik.net)
   Created:   2016-07-06
   Version:   $Id: setup.py 423 2017-05-24 20:20:07Z jacco $
 

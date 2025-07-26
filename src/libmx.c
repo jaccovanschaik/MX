@@ -1,7 +1,7 @@
 /*
  * libmx.c: Main interface to libmx.
  *
- * Copyright: (c) 2014-2024 Jacco van Schaik (jacco@jaccovanschaik.net)
+ * Copyright: (c) 2014-2025 Jacco van Schaik (jacco@jaccovanschaik.net)
  * Version:   $Id: libmx.c 460 2022-01-29 19:32:32Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
