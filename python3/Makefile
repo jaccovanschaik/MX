@@ -1,6 +1,6 @@
 # Makefile: Description
 #
-# Copyright: (c) 2016-2024 Jacco van Schaik (jacco@jaccovanschaik.net)
+# Copyright: (c) 2016-2025 Jacco van Schaik (jacco@jaccovanschaik.net)
 # Created:   2016-07-06
 # Version:   $Id: Makefile 432 2017-05-29 09:21:11Z jacco $
 #
