@@ -1,6 +1,6 @@
 # evt.txt: MX event types.
 #
-# Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
+# Copyright:	(c) 2014-2025 Jacco van Schaik (jacco@jaccovanschaik.net)
 # Version:	$Id: evt.txt 224 2014-11-27 09:10:05Z jacco $
 #
 # This software is distributed under the terms of the MIT license. See
@@ -10,5 +10,4 @@ conn
 disc
 msg
 timer
-read
 err

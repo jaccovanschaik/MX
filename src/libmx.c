@@ -1023,7 +1023,6 @@ static uint16_t mx_count_components(const MX *mx, const char *name)
 {
     int component_count = paCount(&mx->components);
     int found = 0;
-    int name_len = name ? strlen(name) : 0;
 
     for (int i = 0; i < component_count; i++) {
         MX_Component *comp = paGet(&mx->components, i);
@@ -1037,7 +1036,7 @@ static uint16_t mx_count_components(const MX *mx, const char *name)
         else if (comp->name == NULL) {
             continue;
         }
-        else if (strncmp(name, comp->name, name_len) == 0) {
+        else if (strcmp(name, comp->name) == 0) {
             found++;
         }
     }
@@ -2129,8 +2128,6 @@ int mxProcessEvents(MX *mx)
             break;
         case MX_ET_TIMER:
             evt->u.timer.handler(mx, evt->u.timer.id, evt->u.timer.t, evt->u.timer.udata);
-            break;
-        case MX_ET_READ:
             break;
         case MX_ET_ERR:
             mx_notice("error event: %s (%d) in %s.\n",

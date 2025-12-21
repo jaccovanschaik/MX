@@ -1,10 +1,10 @@
 {0: Flight(callsign = "KL1234", kind = Flight.Arrival, time = 1502302257.000000, city = "Frankfurt", gate = "D29", remarks = ""),
  1: Flight(callsign = "BA1234", kind = Flight.Departure, time = 1502302278.000000, city = "London", gate = "D29", remarks = ""),
- 2: Flight(callsign = "KL4231", kind = Flight.Departure, time = 1502302356.000000, city = "Berlin", gate = "D31", remarks = "Boarding"),
- 3: Flight(callsign = "DA345", kind = Flight.Arrival, time = 1502300879.000000, city = "New York", gate = "B11", remarks = "Delayed"),
+ 2: Flight(callsign = "KL4231", kind = Flight.Departure, time = 1502302356.000000, city = "Berlin", gate = "D05", remarks = "Boarding"),
+ 3: Flight(callsign = "DA345", kind = Flight.Arrival, time = 1502300879.000000, city = "New York", gate = "C08", remarks = "Delayed"),
  4: Flight(callsign = "UE1324", kind = Flight.Arrival, time = 1502302576.000000, city = "Dubai", gate = "B11", remarks = ""),
  5: Flight(callsign = "IB231", kind = Flight.Departure, time = 1502302677.000000, city = "Madrid", gate = "B11", remarks = ""),
  7: Flight(callsign = "RY234", kind = Flight.Arrival, time = 1502303079.000000, city = "Alicante", gate = "B12", remarks = ""),
- 9: Flight(callsign = "AA546", kind = Flight.Departure, time = 1502302790.000000, city = "Washington", gate = "D31", remarks = ""),
+ 9: Flight(callsign = "AA546", kind = Flight.Departure, time = 1502302790.000000, city = "Washington", gate = "D05", remarks = ""),
  10: Flight(callsign = "AW324", kind = Flight.Departure, time = 1502301640.000000, city = "Houston", gate = "B11", remarks = ""),
  11: Flight(callsign = "KL22M", kind = Flight.Departure, time = 1712647869.494148, city = "Edinburgh", gate = "D29", remarks = "")}
