@@ -68,12 +68,16 @@ class FlightDisplay(QApplication):
 
     # Handle the --gate/-g option if it was given.
 
+    my_name = 'FlightDisplay'
+
     if self._gate is not None:
       self._ui.setWindowTitle(self._ui.windowTitle() + ': ' + self._gate)
 
+      my_name += ' ' + self._gate
+
     # Contact the MX master at localhost, and tell him my name is "FlightDisplay".
 
-    self._mx = MX(my_name = 'FlightDisplay', mx_host = MX.effectiveHost())
+    self._mx = MX(my_name = my_name, mx_host = MX.effectiveHost())
 
     # Register the message I want to subscribe to...
 
