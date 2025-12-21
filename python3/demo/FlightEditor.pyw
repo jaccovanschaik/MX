@@ -252,10 +252,10 @@ class FlightEditor(QApplication):
     if r > 0:     # Everything in order, wait for the next event(s)
       pass
     elif r == 0:  # No more events expected, just quit.
-      self.exit()
+      self.exit(0)
     elif r < 0:   # Error, print message and quit.
       print(self._mx.error())
-      self.exit()
+      self.exit(1)
 
 if __name__ == '__main__':
   app = FlightEditor(sys.argv)
