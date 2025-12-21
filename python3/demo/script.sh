@@ -25,7 +25,10 @@ printf "\nUse 'mx quit' to stop the demo.\n"
 python3 FlightDB.py &
 python3 FlightEditor.pyw &
 python3 FlightDisplay.pyw &
-python3 FlightDisplay.pyw --gate D29 &
-python3 FlightDisplay.pyw --gate D31 &
-python3 FlightDisplay.pyw --gate B11 &
-python3 FlightDisplay.pyw --gate B12 &
+
+for letter in $(seq 10 15); do
+    for number in $(seq 1 15); do
+        gate=$(printf "%X%02d" $letter $number)
+        python3 FlightDisplay.pyw --gate $gate &
+    done
+done
