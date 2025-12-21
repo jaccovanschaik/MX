@@ -95,15 +95,13 @@ class FlightDB(object):
 
     assert ident in self._flights
 
-    # Update the flight data...
+    # Update the flight data, and if it actually changed send out the update
+    # to all "FlightUpdated" subscribers,
 
-    self._flights[ident].update(callsign, kind, time, city, gate, remarks)
+    if self._flights[ident].update(callsign, kind, time, city, gate, remarks):
+        payload = FlightUpdatedMessage.pack(ident, callsign, kind, time, city, gate, remarks)
 
-    # ... and if it actually changed send out the update to all "FlightUpdated" subscribers,
-
-    payload = FlightUpdatedMessage.pack(ident, callsign, kind, time, city, gate, remarks)
-
-    self._mx.broadcast(self._flight_updated_msg, 0, payload)
+        self._mx.broadcast(self._flight_updated_msg, 0, payload)
 
   def _delete_flight_handler(self, fd, msg_type, msg_version, payload):
     ''' Handle a "DeleteFlight" message. '''
