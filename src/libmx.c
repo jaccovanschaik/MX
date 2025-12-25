@@ -136,14 +136,14 @@ static void mx_push_command(MX_Queue *queue, MX_Command *cmd)
  * If <deadline> is given and no command arrives on time this function returns
  * NULL. Otherwise it returns the received command.
  */
-static MX_Command *mx_pop_command(MX_Queue *queue, double *deadline)
+static MX_Command *mx_pop_command(MX_Queue *queue, double deadline)
 {
     int r;
 
-    if (deadline) {
+    if (isfinite(deadline)) {
         struct timespec time_spec;
 
-        double_to_timespec(*deadline, &time_spec);
+        double_to_timespec(deadline, &time_spec);
 
         r = sem_timedwait(&queue->ok_to_read, &time_spec);
     }
@@ -671,7 +671,7 @@ static void *mx_timer_thread(void *arg)
     MX *mx = arg;
     MX_Timer *timer;
 
-    double *deadline_ptr;
+    double deadline;
 
     /* Wait for timer commands on the timer_queue. */
 
@@ -679,23 +679,22 @@ static void *mx_timer_thread(void *arg)
         timer = listHead(&mx->timers);
 
         if (timer == NULL) {
-            deadline_ptr = NULL;
-        }
-        else if (timer->t == DBL_MAX) {
-            deadline_ptr = NULL;
+            deadline = INFINITY;
         }
         else {
-            deadline_ptr = &timer->t;
+            deadline = timer->t;
         }
 
-        MX_Command *cmd = mx_pop_command(&mx->timer_queue, deadline_ptr);
+        MX_Command *cmd = mx_pop_command(&mx->timer_queue, deadline);
 
         if (cmd == NULL) {
             if (errno == ETIMEDOUT) {
                 listRemove(&mx->timers, timer);
 
-                mx_send_pointer(mx->event_pipe[WR],
-                        mx_timer_event(timer->t, timer->id, timer->handler, timer->udata));
+                MX_Event *event = mx_timer_event(timer->t, timer->id,
+                        timer->handler, timer->udata);
+
+                mx_send_pointer(mx->event_pipe[WR], event);
 
                 free(timer);
             }
@@ -709,8 +708,9 @@ static void *mx_timer_thread(void *arg)
             /* New timer on timer_pipe. Add it and re-sort. */
 
             if (mx_find_timer(mx, cmd->u.timer_create.id) == NULL) {
-                timer = mx_create_timer(cmd->u.timer_create.id, cmd->u.timer_create.t,
-                        cmd->u.timer_create.handler, cmd->u.timer_create.udata);
+                timer = mx_create_timer(cmd->u.timer_create.id,
+                        cmd->u.timer_create.t, cmd->u.timer_create.handler,
+                        cmd->u.timer_create.udata);
 
                 listAppendTail(&mx->timers, timer);
                 listSort(&mx->timers, mx_compare_timers);
@@ -723,10 +723,10 @@ static void *mx_timer_thread(void *arg)
             free(cmd);
         }
         else if (cmd->cmd_type == MX_CT_TIMER_ADJUST) {
-            MX_Timer *existing_timer = mx_find_timer(mx, cmd->u.timer_adjust.id);
+            MX_Timer *timer = mx_find_timer(mx, cmd->u.timer_adjust.id);
 
-            if (existing_timer != NULL) {
-                existing_timer->t = cmd->u.timer_adjust.t;
+            if (timer != NULL) {
+                timer->t = cmd->u.timer_adjust.t;
                 listSort(&mx->timers, mx_compare_timers);
             }
             else {
@@ -737,12 +737,12 @@ static void *mx_timer_thread(void *arg)
             free(cmd);
         }
         else if (cmd->cmd_type == MX_CT_TIMER_DELETE) {
-            MX_Timer *existing_timer = mx_find_timer(mx, cmd->u.timer_delete.id);
+            MX_Timer *timer = mx_find_timer(mx, cmd->u.timer_delete.id);
 
-            if (existing_timer != NULL) {
-                listRemove(&mx->timers, existing_timer);
+            if (timer != NULL) {
+                listRemove(&mx->timers, timer);
 
-                free(existing_timer);
+                free(timer);
             }
             else {
                 mx_send_pointer(mx->event_pipe[WR],
@@ -935,7 +935,7 @@ static void *mx_writer_thread(void *arg)
     /* Wait for commands from the writer_queue and write data to comp->fd. */
 
     while (1) {
-        MX_Command *cmd = mx_pop_command(&comp->writer_queue, NULL);
+        MX_Command *cmd = mx_pop_command(&comp->writer_queue, INFINITY);
 
         if (cmd->cmd_type == MX_CT_EXIT) {
             break;
@@ -959,7 +959,7 @@ static void *mx_writer_thread(void *arg)
         }
     }
 
-    bufRewind(&outgoing);
+    bufClear(&outgoing);
 
     return NULL;
 }
@@ -1077,7 +1077,7 @@ static void mx_destroy_component(MX *mx, MX_Component *comp)
 {
     MX_Await *await;
 
-    bufRewind(&comp->incoming);
+    bufClear(&comp->incoming);
 
     pthread_rwlock_destroy(&comp->await_lock);
 
@@ -1093,7 +1093,8 @@ static void mx_destroy_component(MX *mx, MX_Component *comp)
     }
 
     if (comp != mx->me && comp->name != NULL && mx->on_end_comp_callback) {
-        mx->on_end_comp_callback(mx, comp->fd, comp->name, mx->on_end_comp_udata);
+        mx->on_end_comp_callback(mx, comp->fd, comp->name,
+                mx->on_end_comp_udata);
     }
 
     mx_stop_reader_thread(mx, comp);
