@@ -628,9 +628,11 @@ static PyObject *MX_CreateTimer(MXObject *self,
 
     Py_INCREF(handler);         /* Add a reference to new callback */
 
-    mxCreateTimer(self->mx, id, time, timer_callback, handler);
+    id = mxCreateTimer(self->mx, time, timer_callback, handler);
 
-    Py_RETURN_NONE;
+    PyObject *result = PyLong_FromLong(id);
+
+    return result;
 }
 
 /* void mxAdjustTimer(MX *mx, unit32_t id, double t); */
