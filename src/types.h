@@ -250,7 +250,7 @@ struct MX {
     pthread_t listener_thread;          // Listener thread id.
 
     List timers;                        // List of timers.
-
+    uint32_t next_timer_id;             // ID to assign to next timer.
     MX_Queue timer_queue;               // Command queue to timer thread.
 
     MX_Component *master, *me;          // The master component and myself.

@@ -332,7 +332,7 @@ int mxSendAndWait(MX *mx, int fd, double timeout,
  * identified by <id>. When calling <handler>, the same pointer <udata> given
  * here will be passed back.
  */
-void mxCreateTimer(MX *mx, uint32_t id, double t,
+uint32_t mxCreateTimer(MX *mx, double t,
         void (*handler)(MX *mx, uint32_t id, double t, void *udata),
         void *udata);
 

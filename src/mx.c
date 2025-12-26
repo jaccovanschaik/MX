@@ -317,7 +317,7 @@ static int mx_list(const char *argv0, int argc, char *argv[])
 
     /* Call mx_list_on_timeout after 1 second... */
 
-    mxCreateTimer(mx, 0, mxNow() + 1, mx_list_on_timeout, options);
+    mxCreateTimer(mx, mxNow() + 1, mx_list_on_timeout, options);
 
     /* mxRun won't return until mx_list_on_timeout calls mxShutdown. */
 

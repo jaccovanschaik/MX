@@ -136,7 +136,7 @@ static void mx_push_command(MX_Queue *queue, MX_Command *cmd)
  * If <deadline> is given and no command arrives on time this function returns
  * NULL. Otherwise it returns the received command.
  */
-static MX_Command *mx_pop_command(MX_Queue *queue, double deadline)
+static MX_Command *mx_await_command(MX_Queue *queue, double deadline)
 {
     int r;
 
@@ -685,7 +685,7 @@ static void *mx_timer_thread(void *arg)
             deadline = timer->t;
         }
 
-        MX_Command *cmd = mx_pop_command(&mx->timer_queue, deadline);
+        MX_Command *cmd = mx_await_command(&mx->timer_queue, deadline);
 
         if (cmd == NULL) {
             if (errno == ETIMEDOUT) {
@@ -700,7 +700,7 @@ static void *mx_timer_thread(void *arg)
             }
             else {
                 mx_send_pointer(mx->event_pipe[WR],
-                        mx_error_event(-1, "mx_pop_command", errno));
+                        mx_error_event(-1, "mx_await_command", errno));
                 break;
             }
         }
@@ -935,7 +935,7 @@ static void *mx_writer_thread(void *arg)
     /* Wait for commands from the writer_queue and write data to comp->fd. */
 
     while (1) {
-        MX_Command *cmd = mx_pop_command(&comp->writer_queue, INFINITY);
+        MX_Command *cmd = mx_await_command(&comp->writer_queue, INFINITY);
 
         if (cmd->cmd_type == MX_CT_EXIT) {
             break;
@@ -2128,7 +2128,8 @@ int mxProcessEvents(MX *mx)
                     evt->u.msg.payload, evt->u.msg.size);
             break;
         case MX_ET_TIMER:
-            evt->u.timer.handler(mx, evt->u.timer.id, evt->u.timer.t, evt->u.timer.udata);
+            evt->u.timer.handler(mx, evt->u.timer.id,
+                    evt->u.timer.t, evt->u.timer.udata);
             break;
         case MX_ET_ERR:
             mx_notice("error event: %s (%d) in %s.\n",
@@ -2218,7 +2219,7 @@ uint32_t mxRegister(MX *mx, const char *msg_name)
     MX_Message *msg;
 
     if (msg_name != NULL &&
-            (msg = hashGet(&mx->message_by_name, HASH_STRING(msg_name))) != NULL) {
+        (msg = hashGet(&mx->message_by_name, HASH_STRING(msg_name))) != NULL) {
         return msg->msg_type;
     }
     else if (mx->me == mx->master) {
@@ -2653,7 +2654,7 @@ int mxSendAndWait(MX *mx, int fd, double timeout,
  * identified by <id>. When calling <handler>, the same pointer <udata> given
  * here will be passed back.
  */
-void mxCreateTimer(MX *mx, uint32_t id, double t,
+uint32_t mxCreateTimer(MX *mx, double t,
         void (*handler)(MX *mx, uint32_t id, double t, void *udata),
         void *udata)
 {
@@ -2661,12 +2662,14 @@ void mxCreateTimer(MX *mx, uint32_t id, double t,
 
     cmd->cmd_type = MX_CT_TIMER_CREATE;
 
-    cmd->u.timer_create.id      = id;
+    cmd->u.timer_create.id      = mx->next_timer_id++;
     cmd->u.timer_create.t       = t;
     cmd->u.timer_create.handler = handler;
     cmd->u.timer_create.udata   = udata;
 
     mx_push_command(&mx->timer_queue, cmd);
+
+    return cmd->u.timer_create.id;
 }
 
 /*
