@@ -291,16 +291,21 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
         to publish. The <a href="#mxRegister">mxRegister</a> function returns the message type ID
         that you should use for all subsequent activities.
       </dd>
-      <dt>Subscribe to the messages you're interested in and possibly to other events.</dt>
+      <dt>
+        Subscribe to the messages you're interested in (using
+        <a href="#mxSubscribe">mxSubscribe</a>) and possibly to other events.
+      </dt>
       <dd>
-        With every subscription you specify a callback function that should be called whenever a
+        With every subscription, you specify a callback function that should be called whenever a
         message of the given type is received. You can also subscribe to other events, such as new
         messages being registered, components connecting to or disconnecting from the master, or
         components subscribing to or unsubscribing from a message type. With every subscription you
         can also pass in an opaque void pointer <tt>udata</tt> (for "user data") which is passed
-        back to you unchanged on every delivery. By the way, there is no additional work for
-        messages you want to send; you don't have to "announce" them or anything. You can simply
-        start sending them.
+        back to you unchanged on every delivery. You can subscribe to messages at any time. You can
+        do it here, in the setup phase, but it is perfectly OK to do it later in the message loop as
+        well, should the need arise. Also, there is no additional work for messages you want to
+        provide; you don't have to "announce" them or anything. You can simply start sending them
+        once you have registered them.
       </dd>
     </dl>
     <h3>Message loop</h3>
@@ -324,13 +329,11 @@ Use "mx help &lt;command&gt;" to get help on a specific command.</pre>
         listen on the file descriptor returned by the <a
         href="#mxConnectionNumber">mxConnectionNumber</a> function, and when that file descriptor
         becomes "ready for read" you call the <a href="#mxProcessEvents">mxProcessEvents</a>
-        function. This will then handle the incoming data and call the appropriate handlers.
+        function. This will then handle the incoming data and call the appropriate handlers. If you
+        look at the source code for the <a href="#mxRun">mxRun</a> function you will see that this
+        is essentially what <a href="#mxRun">mxRun</a> itself does as well.
       </dd>
     </dl>
-    <p>
-      By the way, it is perfectly fine to register new messages and/or subscribe to them once the
-      message loop is running.
-    </p>
     <h2>Function reference</h2>
     <a name="mxEffectiveName">
       <p>
