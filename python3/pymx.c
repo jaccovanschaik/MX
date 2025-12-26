@@ -612,13 +612,13 @@ void timer_callback(MX *mx, uint32_t id, double t, void *udata)
 static PyObject *MX_CreateTimer(MXObject *self,
         PyObject *args, PyObject *kwds)
 {
-    static char *kwlist[] = {"id", "t", "handler", NULL};
+    static char *kwlist[] = {"t", "handler", NULL};
     uint32_t id;
     double time;
     PyObject *handler;
 
-    if (PyArg_ParseTupleAndKeywords(args, kwds, "IdO:createTimer",
-                kwlist, &id, &time, &handler) == 0) {
+    if (PyArg_ParseTupleAndKeywords(args, kwds, "dO:createTimer",
+                kwlist, &time, &handler) == 0) {
         return NULL;
     }
     else if (!PyCallable_Check(handler)) {
