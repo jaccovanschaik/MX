@@ -26,8 +26,8 @@ python3 FlightDB.py &
 python3 FlightEditor.pyw &
 python3 FlightDisplay.pyw &
 
-for letter in $(seq 10 15); do
-    for number in $(seq 1 15); do
+for letter in $(seq 10 11); do
+    for number in $(seq 1 2); do
         gate=$(printf "%X%02d" $letter $number)
         python3 FlightDisplay.pyw --gate $gate &
     done

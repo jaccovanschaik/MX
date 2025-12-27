@@ -22,6 +22,7 @@ extern "C" {
 #define MAX_PAYLOAD_SIZE UINT32_MAX
 
 typedef struct MX MX;
+typedef struct MX_Timer MX_Timer;
 
 /*
  * Return the mx_name to use if <mx_name> was given to mxClient() or mxMaster().
@@ -332,19 +333,19 @@ int mxSendAndWait(MX *mx, int fd, double timeout,
  * identified by <id>. When calling <handler>, the same pointer <udata> given
  * here will be passed back.
  */
-uint32_t mxCreateTimer(MX *mx, double t,
-        void (*handler)(MX *mx, uint32_t id, double t, void *udata),
+MX_Timer *mxCreateTimer(MX *mx, double t,
+        void (*handler)(MX *mx, MX_Timer *timer, double t, void *udata),
         void *udata);
 
 /*
  * Adjust the time of the timer with id <id> to <t>.
  */
-void mxAdjustTimer(MX *mx, uint32_t id, double t);
+void mxAdjustTimer(MX *mx, MX_Timer *timer, double t);
 
 /*
  * Remove the timer with id <id>. This timer will not be triggered after all.
  */
-void mxRemoveTimer(MX *mx, uint32_t id);
+void mxRemoveTimer(MX *mx, MX_Timer *timer);
 
 /*
  * Return the current UTC timestamp as a double.

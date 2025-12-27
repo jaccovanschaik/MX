@@ -586,15 +586,21 @@ static PyObject *MX_SendAndWait(MXObject *self,
     return result;
 }
 
-void timer_callback(MX *mx, uint32_t id, double t, void *udata)
+void timer_callback(MX *mx, MX_Timer *timer, double t, void *udata)
 {
+    fprintf(stdout,
+            "timer_callback called for timer at "
+            "%p with time %f and udata %p.\n", timer, t, udata);
+
     PyObject *r;
     PyObject *handler = udata;
-    PyObject *arglist = Py_BuildValue("(Id)", id, t);
+    PyObject *arglist = Py_BuildValue("(Id)", timer, t);
 
     r = PyObject_CallObject(handler, arglist);
 
     if (r == NULL) {
+    fprintf(stdout, "PyObject_CallObject returned NULL.\n");
+
         PyErr_Print();
     }
     else {
@@ -613,7 +619,6 @@ static PyObject *MX_CreateTimer(MXObject *self,
         PyObject *args, PyObject *kwds)
 {
     static char *kwlist[] = {"t", "handler", NULL};
-    uint32_t id;
     double time;
     PyObject *handler;
 
@@ -622,15 +627,15 @@ static PyObject *MX_CreateTimer(MXObject *self,
         return NULL;
     }
     else if (!PyCallable_Check(handler)) {
-        PyErr_SetString(PyExc_TypeError, "parameter must be callable");
+        PyErr_SetString(PyExc_TypeError, "\"handler\" must be callable");
         return NULL;
     }
 
     Py_INCREF(handler);         /* Add a reference to new callback */
 
-    id = mxCreateTimer(self->mx, time, timer_callback, handler);
+    MX_Timer *timer = mxCreateTimer(self->mx, time, timer_callback, handler);
 
-    PyObject *result = PyLong_FromLong(id);
+    PyObject *result = PyLong_FromVoidPtr(timer);
 
     return result;
 }
@@ -640,15 +645,18 @@ static PyObject *MX_AdjustTimer(MXObject *self,
         PyObject *args, PyObject *kwds)
 {
     static char *kwlist[] = {"id", "t", NULL};
-    uint32_t id;
+    MX_Timer *timer;
     double time;
 
     if (PyArg_ParseTupleAndKeywords(args, kwds, "Id:adjustTimer",
-                kwlist, &id, &time) == 0) {
+                kwlist, &timer, &time) == 0) {
         return NULL;
     }
 
-    mxAdjustTimer(self->mx, id, time);
+    fprintf(stdout, "MX_AdjustTimer: adjusting timer at %p to time %f\n",
+            timer, time);
+
+    mxAdjustTimer(self->mx, timer, time);
 
     Py_RETURN_NONE;
 }
@@ -658,14 +666,14 @@ static PyObject *MX_RemoveTimer(MXObject *self,
         PyObject *args, PyObject *kwds)
 {
     static char *kwlist[] = {"id", NULL};
-    uint32_t id;
+    MX_Timer *timer;
 
-    if (PyArg_ParseTupleAndKeywords(args, kwds, "I:removeTimer",
-                kwlist, &id) == 0) {
+    if (PyArg_ParseTupleAndKeywords(args, kwds, "O:removeTimer",
+                kwlist, &timer) == 0) {
         return NULL;
     }
 
-    mxRemoveTimer(self->mx, id);
+    mxRemoveTimer(self->mx, timer);
 
     Py_RETURN_NONE;
 }
@@ -886,22 +894,23 @@ static PyMethodDef MX_methods[] = {
     },
     { "createTimer", (PyCFunction) MX_CreateTimer,
       METH_KEYWORDS | METH_VARARGS,
-      "mx.createTimer(self, id, time, handler)\n\n"
-      "Create a timer with identifier <id> to call <handler> at time <time>. "
-      "<time> is the number of seconds since 00:00:00 01-01-1970 as a floating "
-      "point number, as returned by time.time()."
+      "mx.createTimer(self, time, handler)\n\n"
+      "Create a timer to call <handler> at time <time>. <time> is the number "
+      "of seconds since 00:00:00 01-01-1970 UTC as a floating point number, "
+      "as returned by time.time(). Returns a timer id that can be used in "
+      "adjustTimer and removeTimer below."
     },
     { "adjustTimer", (PyCFunction) MX_AdjustTimer,
       METH_KEYWORDS | METH_VARARGS,
       "mx.adjustTimer(self, id, time)\n\n"
-      "Adjust the timeout of the timer with identifier <id> to time <time>. "
-      "<time> is the number of seconds since 00:00:00 01-01-1970 as a floating "
+      "Adjust the timeout of the timer with id <id> to time <time>. <time> "
+      "is the number of seconds since 00:00:00 01-01-1970 UTC as a floating "
       "point number, as returned by time.time()."
     },
     { "removeTimer", (PyCFunction) MX_RemoveTimer,
       METH_KEYWORDS | METH_VARARGS,
       "mx.removeTimer(self, id)\n\n"
-      "Remove the timer with identifier <id>."
+      "Remove the timer with id <id>."
     },
     { "connectionNumber", (PyCFunction) MX_ConnectionNumber,
       METH_NOARGS,

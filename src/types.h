@@ -50,21 +50,35 @@ typedef struct {
 } MX_WriteCommand;
 
 /*
+ * MX timer data.
+ */
+struct MX_Timer {
+    ListNode _node;                     // Make it listable.
+    double t;                           // Time since epoch.
+                                        // Callback and udata.
+    void (*handler)(MX *mx, MX_Timer *timer, double t, void *udata);
+    void *udata;
+};
+
+/*
  * Command to timer thread to create a timer.
  */
 typedef struct {
+    MX_Timer *timer;
+#if 0
     uint32_t id;                        // ID of timer.
     double t;                           // Time since epoch.
                                         // Callback and udata.
     void (*handler)(MX *mx, uint32_t id, double t, void *udata);
     void *udata;
+#endif
 } MX_TimerCreateCommand;
 
 /*
  * Command to timer thread to adjust a timer.
  */
 typedef struct {
-    uint32_t id;                        // ID of timer to adjust.
+    MX_Timer *timer;
     double t;                           // New time.
 } MX_TimerAdjustCommand;
 
@@ -72,7 +86,7 @@ typedef struct {
  * Command to timer thread to delete a timer.
  */
 typedef struct {
-    uint32_t id;                        // ID of timer to delete.
+    MX_Timer *timer;
 } MX_TimerDeleteCommand;
 
 /*
@@ -97,18 +111,6 @@ typedef struct {
     pthread_mutex_t ok_to_access;
     sem_t ok_to_read;
 } MX_Queue;
-
-/*
- * MX timer data.
- */
-typedef struct {
-    ListNode _node;                     // Make it listable.
-    uint32_t id;
-    double t;                           // Time since epoch.
-                                        // Callback and udata.
-    void (*handler)(MX *mx, uint32_t id, double t, void *udata);
-    void *udata;
-} MX_Timer;
 
 /*
  * MX await data.
@@ -231,7 +233,7 @@ typedef struct {
         MX_ConnectEvent    conn;        // Connect event data.
         MX_DisconnectEvent disc;        // Disconnect event data.
         MX_MessageEvent    msg;         // Message event data.
-        MX_Timer           timer;       // Timer event data.
+        MX_Timer          *timer;       // Timer event data.
         MX_ReadableEvent   read;        // Readable event data.
         MX_ErrorEvent      err;         // Error event data.
     } u;
@@ -250,7 +252,6 @@ struct MX {
     pthread_t listener_thread;          // Listener thread id.
 
     List timers;                        // List of timers.
-    uint32_t next_timer_id;             // ID to assign to next timer.
     MX_Queue timer_queue;               // Command queue to timer thread.
 
     MX_Component *master, *me;          // The master component and myself.

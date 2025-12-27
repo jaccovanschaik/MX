@@ -12,7 +12,7 @@
   http://www.opensource.org/licenses/mit-license.php for details.
 '''
 
-import os, pprint
+import os, pprint, time
 
 from mx import MX
 
@@ -20,6 +20,11 @@ from Flight import Flight
 
 from Messages import CreateFlightMessage, UpdateFlightMessage, DeleteFlightMessage
 from Messages import FlightCreatedMessage, FlightUpdatedMessage, FlightDeletedMessage
+
+def handle_timer(timer, time):
+    print("handle_timer: ", timer, time)
+
+    # mx.adjustTimer(timer, time + 1)
 
 class FlightDB(object):
   def __init__(self):
@@ -32,6 +37,10 @@ class FlightDB(object):
     # Contact the MX master at localhost, tell him my name is "FlightDB".
 
     self._mx = MX(mx_host = MX.effectiveHost(), my_name = 'FlightDB')
+
+    timer = self._mx.createTimer(time.time() + 1, self._handle_timer)
+
+    # print("Created timer:", timer)
 
     # Register the messages I want to subscribe to...
 
@@ -54,6 +63,15 @@ class FlightDB(object):
     # Tell me if anyone subscribes to "Flight Created" messages.
 
     self._mx.onNewSubscriber(self._flight_created_msg, self._new_subscriber_handler)
+
+  def _handle_timer(self, timer, time):
+    print("_handle_timer: ", timer, time)
+
+    time += 1;
+
+    print("_handle_timer: adjusting timer to time ", time)
+
+    self._mx.adjustTimer(timer, time)
 
   def _next_ident(self):
     ''' Get the next ident for a new Flight. '''

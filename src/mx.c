@@ -226,7 +226,7 @@ static int mx_quit(int argc, char *argv[])
 /*
  * Timeout routine for the "mx list" command.
  */
-static void mx_list_on_timeout(MX *mx, uint32_t id, double t, void *udata)
+static void mx_list_on_timeout(MX *mx, MX_Timer *timer, double t, void *udata)
 {
     int i, verbosity;
     const char *arg;

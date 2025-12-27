@@ -6,6 +6,8 @@
 # This software is distributed under the terms of the MIT license. See
 # http://www.opensource.org/licenses/mit-license.php for details.
 
+JVS_TOP = $(HOME)
+
 all clean install:
 	$(MAKE) -C src $@
 	$(MAKE) -C doc $@
@@ -16,3 +18,11 @@ update:
 	git pull
 	-git stash pop
 	make install
+
+tags:
+	ctags --c-kinds=+p -R . \
+            $(JVS_TOP)/Projects/libjvs \
+            $(JVS_TOP)/include \
+            /usr/include
+
+.PHONY: tags
