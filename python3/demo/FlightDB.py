@@ -65,7 +65,7 @@ class FlightDB(object):
     self._mx.onNewSubscriber(self._flight_created_msg, self._new_subscriber_handler)
 
   def _handle_timer(self, timer, time):
-    print("_handle_timer at time", time, file=sys.stderr)
+    print("_handle_timer for timer at %x at time %f" % (timer, time))
 
     time += 1;
 

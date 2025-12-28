@@ -593,7 +593,7 @@ void timer_callback(MX *mx, MX_Timer *timer, double t, void *udata)
 
     PyObject *r;
     PyObject *handler = udata;
-    PyObject *arglist = Py_BuildValue("(Id)", timer, t);
+    PyObject *arglist = Py_BuildValue("(Kd)", (uint64_t) timer, t);
 
     r = PyObject_CallObject(handler, arglist);
 
@@ -646,7 +646,7 @@ static PyObject *MX_AdjustTimer(MXObject *self,
     MX_Timer *timer;
     double time;
 
-    if (PyArg_ParseTupleAndKeywords(args, kwds, "Id:adjustTimer",
+    if (PyArg_ParseTupleAndKeywords(args, kwds, "Kd:adjustTimer",
                 kwlist, &timer, &time) == 0) {
         return NULL;
     }
@@ -666,7 +666,7 @@ static PyObject *MX_RemoveTimer(MXObject *self,
     static char *kwlist[] = {"timer", NULL};
     MX_Timer *timer;
 
-    if (PyArg_ParseTupleAndKeywords(args, kwds, "I:removeTimer",
+    if (PyArg_ParseTupleAndKeywords(args, kwds, "K:removeTimer",
                 kwlist, &timer) == 0) {
         return NULL;
     }

@@ -708,7 +708,7 @@ static void *mx_timer_thread(void *arg)
                 mx_send_pointer(mx->event_pipe[WR], event);
 
                 // Now that we've sent the event, set the timeout for this
-                // timer to inifinity and re-sort the list. So the timer will
+                // timer to infinity and re-sort the list. So the timer will
                 // still be in the timer list but it won't ever be triggered
                 // again. The user is now free to call mxAdjustTimer of
                 // mxRemoveTimer.
