@@ -6,6 +6,8 @@ def FlagsForFile(filename, **kwargs):
       '-x', 'c',
       '-Wall', '-Wpointer-arith',
       '-fPIC',
-      '-I.', '-I' + os.environ['HOME'] + '/include'
+      '-I.',
+      '-I' + os.environ['HOME'] + '/include',
+      '-I/usr/include/python3.13'
     ],
   }
