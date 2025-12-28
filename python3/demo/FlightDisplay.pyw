@@ -19,7 +19,7 @@ import sys, time, argparse, datetime
 
 from mx import MX
 
-from PyQt5.QtWidgets import QApplication, QTableWidgetItem, QLabel
+from PyQt5.QtWidgets import QApplication, QTableWidgetItem, QLabel, QHeaderView
 from PyQt5.QtGui import QColor, QPixmap
 from PyQt5.QtCore import QSocketNotifier, QDateTime
 
@@ -75,7 +75,7 @@ class FlightDisplay(QApplication):
 
       my_name += ' ' + self._gate
 
-    # Contact the MX master at localhost, and tell him my name is "FlightDisplay".
+    # Contact the MX master at localhost, and tell him my name.
 
     self._mx = MX(my_name = my_name, mx_host = MX.effectiveHost())
 
@@ -208,8 +208,8 @@ class FlightDisplay(QApplication):
       item.setBackground(color)
       self._ui.table.setItem(row, 5, item)
 
-    self._ui.table.resizeColumnsToContents()
-    self._ui.table.horizontalHeader().setStretchLastSection(True)
+    for col in range(0, 5):
+      self._ui.table.resizeColumnToContents(col)
 
   def _mx_event_handler(self):
     ''' Incoming data on the MX socket. Let MX handle it. '''
