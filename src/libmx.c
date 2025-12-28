@@ -248,7 +248,18 @@ static MX_Event *mx_timer_event(MX_Timer *timer)
 {
     MX_Event *evt = mx_new_event(MX_ET_TIMER);
 
-    evt->u.timer = timer;
+    // We're copying everything because we don't know what might happen to the
+    // original timer after we send this event. We *do* know that at least the
+    // time is going to be set to infinitely far into the future, at least.
+
+    evt->u.timer.t       = timer->t;
+    evt->u.timer.handler = timer->handler;
+    evt->u.timer.udata   = timer->udata;
+
+    // We also copy the pointer to the original timer so the user can
+    // manipulate it in their timer handler.
+
+    evt->u.timer.timer   = timer;
 
     return evt;
 }
@@ -689,8 +700,6 @@ static void *mx_timer_thread(void *arg)
             fprintf(stdout, "%s: mx_await_command timed out.\n", __func__);
 
             if (errno == ETIMEDOUT) {
-                listRemove(&mx->timers, timer);
-
                 fprintf(stdout, "%s: sending an mx_timer_event "
                         "back to the main thread.\n", __func__);
 
@@ -698,7 +707,14 @@ static void *mx_timer_thread(void *arg)
 
                 mx_send_pointer(mx->event_pipe[WR], event);
 
-                // free(timer);
+                // Now that we've sent the event, set the timeout for this
+                // timer to inifinity and re-sort the list. So the timer will
+                // still be in the timer list but it won't ever be triggered
+                // again. The user is now free to call mxAdjustTimer of
+                // mxRemoveTimer.
+
+                timer->t = INFINITY;
+                listSort(&mx->timers, mx_compare_timers);
             }
             else {
                 mx_send_pointer(mx->event_pipe[WR],
@@ -724,8 +740,8 @@ static void *mx_timer_thread(void *arg)
             fprintf(stdout, "%s: mx_await_command returned an "
                     "MX_CT_TIMER_ADJUST command for timer %p at time %f\n",
                     __func__,
-                    cmd->u.timer_create.timer,
-                    cmd->u.timer_create.timer->t);
+                    cmd->u.timer_adjust.timer,
+                    cmd->u.timer_adjust.t);
 
             cmd->u.timer_adjust.timer->t = cmd->u.timer_adjust.t;
 
@@ -2129,8 +2145,8 @@ int mxProcessEvents(MX *mx)
         case MX_ET_TIMER:
             fprintf(stderr, "%s: received an MX_ET_TIMER event.\n", __func__);
 
-            evt->u.timer->handler(mx, evt->u.timer,
-                    evt->u.timer->t, evt->u.timer->udata);
+            evt->u.timer.handler(mx,
+                    evt->u.timer.timer, evt->u.timer.t, evt->u.timer.udata);
             break;
         case MX_ET_ERR:
             mx_notice("error event: %s (%d) in %s.\n",

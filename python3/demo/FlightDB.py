@@ -12,7 +12,7 @@
   http://www.opensource.org/licenses/mit-license.php for details.
 '''
 
-import os, pprint, time
+import os, pprint, time, sys
 
 from mx import MX
 
@@ -22,7 +22,7 @@ from Messages import CreateFlightMessage, UpdateFlightMessage, DeleteFlightMessa
 from Messages import FlightCreatedMessage, FlightUpdatedMessage, FlightDeletedMessage
 
 def handle_timer(timer, time):
-    print("handle_timer: ", timer, time)
+    print("handle_timer: ", timer, time, file=sys.stderr)
 
     # mx.adjustTimer(timer, time + 1)
 
@@ -65,11 +65,11 @@ class FlightDB(object):
     self._mx.onNewSubscriber(self._flight_created_msg, self._new_subscriber_handler)
 
   def _handle_timer(self, timer, time):
-    print("_handle_timer: ", timer, time)
+    print("_handle_timer at time", time, file=sys.stderr)
 
     time += 1;
 
-    print("_handle_timer: adjusting timer to time ", time)
+    print("_handle_timer: adjusting to time", time, file=sys.stderr)
 
     self._mx.adjustTimer(timer, time)
 

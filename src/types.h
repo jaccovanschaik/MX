@@ -4,7 +4,7 @@
 /*
  * types.h: Datatypes for MX.
  *
- * Copyright:	(c) 2014-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
+ * Copyright:	(c) 2014-2025 Jacco van Schaik (jacco@jaccovanschaik.net)
  * Version:	$Id: types.h 459 2022-01-29 19:31:00Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
@@ -207,6 +207,13 @@ typedef struct {
     char *payload;                      // Payload.
 } MX_MessageEvent;
 
+typedef struct {
+    MX_Timer *timer;
+    double t;                           // Time since epoch.
+    void (*handler)(MX *mx, MX_Timer *timer, double t, void *udata);
+    void *udata;
+} MX_TimerEvent;
+
 /*
  * Readable file descriptor event data.
  */
@@ -233,7 +240,7 @@ typedef struct {
         MX_ConnectEvent    conn;        // Connect event data.
         MX_DisconnectEvent disc;        // Disconnect event data.
         MX_MessageEvent    msg;         // Message event data.
-        MX_Timer          *timer;       // Timer event data.
+        MX_TimerEvent      timer;       // Timer event data.
         MX_ReadableEvent   read;        // Readable event data.
         MX_ErrorEvent      err;         // Error event data.
     } u;

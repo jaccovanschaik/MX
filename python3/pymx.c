@@ -1,6 +1,6 @@
 /* pymx.c: Description
  *
- * Copyright: (c) 2016-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
+ * Copyright: (c) 2016-2025 Jacco van Schaik (jacco@jaccovanschaik.net)
  * Created:   2016-07-06
  * Version:   $Id: pymx.c 461 2022-01-31 09:02:30Z jacco $
  *
@@ -263,7 +263,7 @@ static PyObject *MX_Subscribe(MXObject *self,
         return NULL;
     }
     else if (!PyCallable_Check(handler)) {
-        PyErr_SetString(PyExc_TypeError, "parameter must be callable");
+        PyErr_SetString(PyExc_TypeError, "\"handler\" must be callable");
         return NULL;
     }
 
@@ -277,10 +277,9 @@ static PyObject *MX_Cancel(MXObject *self, PyObject *args, PyObject *kwds)
 {
     static char *kwlist[] = {"msg_type", NULL};
     uint32_t msg_type = 0;
-    PyObject *handler;
 
-    if (PyArg_ParseTupleAndKeywords(args, kwds, "IO:cancel",
-                kwlist, &msg_type, &handler) == 0) {
+    if (PyArg_ParseTupleAndKeywords(args, kwds, "I:cancel",
+                kwlist, &msg_type) == 0) {
         return NULL;
     }
 
@@ -321,7 +320,7 @@ static PyObject *MX_OnNewSubscriber(MXObject *self,
         return NULL;
     }
     else if (!PyCallable_Check(handler)) {
-        PyErr_SetString(PyExc_TypeError, "parameter must be callable");
+        PyErr_SetString(PyExc_TypeError, "\"handler\" must be callable");
         return NULL;
     }
 
@@ -348,7 +347,7 @@ static PyObject *MX_OnEndSubscriber(MXObject *self,
         return NULL;
     }
     else if (!PyCallable_Check(handler)) {
-        PyErr_SetString(PyExc_TypeError, "parameter must be callable");
+        PyErr_SetString(PyExc_TypeError, "\"handler\" must be callable");
         return NULL;
     }
 
@@ -392,7 +391,7 @@ static PyObject *MX_OnNewComponent(MXObject *self,
         return NULL;
     }
     else if (!PyCallable_Check(handler)) {
-        PyErr_SetString(PyExc_TypeError, "parameter must be callable");
+        PyErr_SetString(PyExc_TypeError, "\"handler\" must be callable");
         return NULL;
     }
 
@@ -418,7 +417,7 @@ static PyObject *MX_OnEndComponent(MXObject *self,
         return NULL;
     }
     else if (!PyCallable_Check(handler)) {
-        PyErr_SetString(PyExc_TypeError, "parameter must be callable");
+        PyErr_SetString(PyExc_TypeError, "\"handler\" must be callable");
         return NULL;
     }
 
@@ -463,7 +462,7 @@ static PyObject *MX_OnNewMessage(MXObject *self,
         return NULL;
     }
     else if (!PyCallable_Check(handler)) {
-        PyErr_SetString(PyExc_TypeError, "parameter must be callable");
+        PyErr_SetString(PyExc_TypeError, "\"handler\" must be callable");
         return NULL;
     }
 
@@ -589,8 +588,8 @@ static PyObject *MX_SendAndWait(MXObject *self,
 void timer_callback(MX *mx, MX_Timer *timer, double t, void *udata)
 {
     fprintf(stdout,
-            "timer_callback called for timer at "
-            "%p with time %f and udata %p.\n", timer, t, udata);
+            "%s: timer at %p with time %f and udata %p.\n",
+            __func__, timer, t, udata);
 
     PyObject *r;
     PyObject *handler = udata;
@@ -599,7 +598,7 @@ void timer_callback(MX *mx, MX_Timer *timer, double t, void *udata)
     r = PyObject_CallObject(handler, arglist);
 
     if (r == NULL) {
-    fprintf(stdout, "PyObject_CallObject returned NULL.\n");
+        fprintf(stdout, "%s: PyObject_CallObject returned NULL.\n", __func__);
 
         PyErr_Print();
     }
@@ -607,7 +606,6 @@ void timer_callback(MX *mx, MX_Timer *timer, double t, void *udata)
         Py_DECREF(r);
     }
 
-    Py_DECREF(handler);
     Py_DECREF(arglist);
 }
 
@@ -640,11 +638,11 @@ static PyObject *MX_CreateTimer(MXObject *self,
     return result;
 }
 
-/* void mxAdjustTimer(MX *mx, unit32_t id, double t); */
+/* void mxAdjustTimer(MX *mx, MX_Timer *timer, double t); */
 static PyObject *MX_AdjustTimer(MXObject *self,
         PyObject *args, PyObject *kwds)
 {
-    static char *kwlist[] = {"id", "t", NULL};
+    static char *kwlist[] = {"timer", "t", NULL};
     MX_Timer *timer;
     double time;
 
@@ -653,22 +651,22 @@ static PyObject *MX_AdjustTimer(MXObject *self,
         return NULL;
     }
 
-    fprintf(stdout, "MX_AdjustTimer: adjusting timer at %p to time %f\n",
-            timer, time);
+    fprintf(stdout, "%s: adjusting timer at %p to time %f\n",
+            __func__, timer, time);
 
     mxAdjustTimer(self->mx, timer, time);
 
     Py_RETURN_NONE;
 }
 
-/* void mxRemoveTimer(MX *mx, unit32_t id, double t); */
+/* void mxRemoveTimer(MX *mx, MX_Timer *timer); */
 static PyObject *MX_RemoveTimer(MXObject *self,
         PyObject *args, PyObject *kwds)
 {
-    static char *kwlist[] = {"id", NULL};
+    static char *kwlist[] = {"timer", NULL};
     MX_Timer *timer;
 
-    if (PyArg_ParseTupleAndKeywords(args, kwds, "O:removeTimer",
+    if (PyArg_ParseTupleAndKeywords(args, kwds, "I:removeTimer",
                 kwlist, &timer) == 0) {
         return NULL;
     }
