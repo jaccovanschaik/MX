@@ -697,12 +697,7 @@ static void *mx_timer_thread(void *arg)
         MX_Command *cmd = mx_await_command(&mx->timer_queue, deadline);
 
         if (cmd == NULL) {
-            fprintf(stdout, "%s: mx_await_command timed out.\n", __func__);
-
             if (errno == ETIMEDOUT) {
-                fprintf(stdout, "%s: sending an mx_timer_event "
-                        "back to the main thread.\n", __func__);
-
                 MX_Event *event = mx_timer_event(timer);
 
                 mx_send_pointer(mx->event_pipe[WR], event);
@@ -723,12 +718,6 @@ static void *mx_timer_thread(void *arg)
             }
         }
         else if (cmd->cmd_type == MX_CT_TIMER_CREATE) {
-            fprintf(stdout, "%s: mx_await_command returned an "
-                    "MX_CT_TIMER_CREATE command for timer %p at time %f\n",
-                    __func__,
-                    cmd->u.timer_create.timer,
-                    cmd->u.timer_create.timer->t);
-
             /* New timer on timer_pipe. Add it and re-sort. */
 
             listAppendTail(&mx->timers, cmd->u.timer_create.timer);
@@ -737,12 +726,6 @@ static void *mx_timer_thread(void *arg)
             free(cmd);
         }
         else if (cmd->cmd_type == MX_CT_TIMER_ADJUST) {
-            fprintf(stdout, "%s: mx_await_command returned an "
-                    "MX_CT_TIMER_ADJUST command for timer %p at time %f\n",
-                    __func__,
-                    cmd->u.timer_adjust.timer,
-                    cmd->u.timer_adjust.t);
-
             cmd->u.timer_adjust.timer->t = cmd->u.timer_adjust.t;
 
             listSort(&mx->timers, mx_compare_timers);
@@ -750,28 +733,17 @@ static void *mx_timer_thread(void *arg)
             free(cmd);
         }
         else if (cmd->cmd_type == MX_CT_TIMER_DELETE) {
-            fprintf(stdout, "%s: mx_await_command returned an "
-                    "MX_CT_TIMER_DELETE command for timer %p\n",
-                    __func__,
-                    cmd->u.timer_create.timer);
-
             listRemove(&mx->timers, cmd->u.timer_delete.timer);
 
             free(timer);
             free(cmd);
         }
         else if (cmd->cmd_type == MX_CT_EXIT) {
-            fprintf(stdout, "%s: mx_await_command returned an "
-                    "MX_CT_EXIT command\n", __func__);
-
             free(cmd);
 
             break;
         }
         else {
-            fprintf(stdout, "%s: mx_await_command returned an "
-                    "unknown command\n", __func__);
-
             mx_send_pointer(mx->event_pipe[WR],
                         mx_error_event(-1, "read", EINVAL));
 
@@ -2143,8 +2115,6 @@ int mxProcessEvents(MX *mx)
                     evt->u.msg.payload, evt->u.msg.size);
             break;
         case MX_ET_TIMER:
-            fprintf(stderr, "%s: received an MX_ET_TIMER event.\n", __func__);
-
             evt->u.timer.handler(mx,
                     evt->u.timer.timer, evt->u.timer.t, evt->u.timer.udata);
             break;
@@ -2681,14 +2651,6 @@ MX_Timer *mxCreateTimer(MX *mx, double t,
 
     cmd->u.timer_create.timer = mx_create_timer(t, handler, udata);
 
-    fprintf(stdout, "%s: Created timer at %p with time %f.\n", __func__,
-            cmd->u.timer_create.timer,
-            cmd->u.timer_create.timer->t);
-
-    fprintf(stdout,
-            "%s: Sending MX_CT_TIMER_CREATE command to timer thread.\n",
-            __func__);
-
     mx_push_command(&mx->timer_queue, cmd);
 
     return cmd->u.timer_create.timer;
@@ -2705,11 +2667,6 @@ void mxAdjustTimer(MX *mx, MX_Timer *timer, double t)
 
     cmd->u.timer_adjust.timer = timer;
     cmd->u.timer_adjust.t     = t;
-
-    fprintf(stdout,
-            "%s: Sending MX_CT_TIMER_ADJUST command for timer at %p "
-            "with time %f to timer thread.\n",
-            __func__, timer, t);
 
     mx_push_command(&mx->timer_queue, cmd);
 }

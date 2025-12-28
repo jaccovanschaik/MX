@@ -15,7 +15,7 @@
   http://www.opensource.org/licenses/mit-license.php for details.
 '''
 
-import sys, time, argparse
+import sys, time, argparse, datetime
 
 from mx import MX
 
@@ -91,12 +91,25 @@ class FlightDisplay(QApplication):
     self._mx.subscribe(self._flight_updated_msg, self._flight_updated_handler)
     self._mx.subscribe(self._flight_deleted_msg, self._flight_deleted_handler)
 
+    timeout = int(time.time()) + 1
+
+    self._timer = self._mx.createTimer(timeout, self._handle_timer)
+
     # Set up a socket notifier for incoming socket data.
 
     self._notifier = QSocketNotifier(self._mx.connectionNumber(), QSocketNotifier.Read, self)
     self._notifier.activated.connect(self._mx_event_handler)
 
     self._ui.show()
+
+  def _handle_timer(self, timer, time):
+      text = datetime.datetime.fromtimestamp(time).strftime('%A %B %d')
+      self._ui.date.setText(text)
+
+      text = datetime.datetime.fromtimestamp(time).strftime('%H:%M:%S')
+      self._ui.time.setText(text)
+
+      self._mx.adjustTimer(self._timer, time + 1)
 
   def _flight_created_handler(self, fd, msg_type, msg_version, payload):
     ''' Handle a "FlightCreated" message. '''

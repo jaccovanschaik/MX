@@ -587,10 +587,6 @@ static PyObject *MX_SendAndWait(MXObject *self,
 
 void timer_callback(MX *mx, MX_Timer *timer, double t, void *udata)
 {
-    fprintf(stdout,
-            "%s: timer at %p with time %f and udata %p.\n",
-            __func__, timer, t, udata);
-
     PyObject *r;
     PyObject *handler = udata;
     PyObject *arglist = Py_BuildValue("(Kd)", (uint64_t) timer, t);
@@ -598,8 +594,6 @@ void timer_callback(MX *mx, MX_Timer *timer, double t, void *udata)
     r = PyObject_CallObject(handler, arglist);
 
     if (r == NULL) {
-        fprintf(stdout, "%s: PyObject_CallObject returned NULL.\n", __func__);
-
         PyErr_Print();
     }
     else {
@@ -650,9 +644,6 @@ static PyObject *MX_AdjustTimer(MXObject *self,
                 kwlist, &timer, &time) == 0) {
         return NULL;
     }
-
-    fprintf(stdout, "%s: adjusting timer at %p to time %f\n",
-            __func__, timer, time);
 
     mxAdjustTimer(self->mx, timer, time);
 
