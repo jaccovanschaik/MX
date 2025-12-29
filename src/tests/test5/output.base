@@ -1,6 +1,16 @@
-step1 at t0 + 1.0 sec.
-step2 at t0 + 2.0 sec.
-Timer 1 timed out at t0 + 4.0 sec.
-step3 at t0 + 5.0 sec.
-step4 at t0 + 6.0 sec.
-step5 at t0 + 8.0 sec.
+main: created ctrl_timer, calling step1 in 1 second.
+step1: t0 + 1.0 sec.
+step1: created new test_timer, to call on_test_timer in 2 seconds.
+step1: created new ctrl_timer, to call step2 in 1 second.
+step2: t0 + 2.0 sec.
+step2: shifting test_timer forward to 2 seconds from now.
+step2: created new ctrl_timer, to call step3 in 3 seconds.
+on_test_timer: t0 + 4.0 sec.
+step3: t0 + 5.0 sec.
+step3: shifting test_timer forward another 2 seconds from now.
+step3: created new ctrl_timer, to call step4 in 1 second.
+step4: t0 + 6.0 sec.
+step4: removing test_timer.
+step4: created new ctrl_timer, to call step5 in 1 second.
+step5: t0 + 8.0 sec.
+step5: calling mxShutdown.

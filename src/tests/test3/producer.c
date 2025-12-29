@@ -1,7 +1,7 @@
 /*
  * producer.c: Message producer for test3.
  *
- * Copyright:	(c) 2014 Jacco van Schaik (jacco@jaccovanschaik.net)
+ * Copyright:	(c) 2014-2025 Jacco van Schaik (jacco@jaccovanschaik.net)
  * Version:	$Id: producer.c 330 2016-07-21 11:20:35Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
@@ -20,6 +20,8 @@
 static uint32_t test_msg;
 static uint32_t msg_number = 0;
 
+static MX_Timer *timer;
+
 void on_new_subscriber(MX *mx, int fd, uint32_t type, void *udata)
 {
     uint32_t i;
@@ -31,7 +33,7 @@ void on_new_subscriber(MX *mx, int fd, uint32_t type, void *udata)
     }
 }
 
-void on_time(MX *mx, uint32_t id, double t, void *udata)
+void on_time(MX *mx, MX_Timer *timer, double t, void *udata)
 {
     printf("Producer: broadcasting msg %d\n", msg_number);
 
@@ -42,7 +44,7 @@ void on_time(MX *mx, uint32_t id, double t, void *udata)
 
         msg_number++;
 
-        mxCreateTimer(mx, id, t + 1, on_time, NULL);
+        mxAdjustTimer(mx, timer, t + 1);
     }
     else {
         mxShutdown(mx);
@@ -64,7 +66,7 @@ int main(int argc, char *argv[])
 
     test_msg = mxRegister(mx, "Test");
 
-    mxCreateTimer(mx, 0, mxNow() + 1, on_time, NULL);
+    timer = mxCreateTimer(mx, mxNow() + 1, on_time, NULL);
 
     mxOnNewSubscriber(mx, test_msg, on_new_subscriber, NULL);
 

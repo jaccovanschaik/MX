@@ -1,7 +1,7 @@
 /*
  * ping.c: Broadcasts "Ping" messages at regular intervals.
  *
- * Copyright:	(c) 2014-2022 Jacco van Schaik (jacco@jaccovanschaik.net)
+ * Copyright:	(c) 2014-2025 Jacco van Schaik (jacco@jaccovanschaik.net)
  * Version:	$Id: ping.c 461 2022-01-31 09:02:30Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
@@ -18,7 +18,9 @@
 
 static uint32_t ping_msg;
 
-void on_time(MX *mx, uint32_t id, double t, void *udata)
+MX_Timer *timer;
+
+void on_time(MX *mx, MX_Timer *timer, double t, void *udata)
 {
     static int count = 0;
 
@@ -31,7 +33,7 @@ void on_time(MX *mx, uint32_t id, double t, void *udata)
                 PACK_INT32, count,
                 END);
 
-        mxCreateTimer(mx, 0, t + 1, on_time, NULL);
+        mxAdjustTimer(mx, timer, t + 1);
     }
     else {
         fprintf(stderr, "Ping: shutting down.\n");
@@ -57,7 +59,7 @@ int main(int argc, char *argv[])
 
     fprintf(stderr, "Ping: ping_msg = %d.\n", ping_msg);
 
-    mxCreateTimer(mx, 0, mxNow() + 1, on_time, NULL);
+    timer = mxCreateTimer(mx, mxNow() + 1, on_time, NULL);
 
     r = mxRun(mx);
 
