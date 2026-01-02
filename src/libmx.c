@@ -1,7 +1,7 @@
 /*
  * libmx.c: Main interface to libmx.
  *
- * Copyright: (c) 2014-2025 Jacco van Schaik (jacco@jaccovanschaik.net)
+ * Copyright: (c) 2014-2026 Jacco van Schaik (jacco@jaccovanschaik.net)
  * Version:   $Id: libmx.c 460 2022-01-29 19:32:32Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
@@ -697,15 +697,8 @@ static void *mx_timer_thread(void *arg)
         MX_Command *cmd = mx_await_command(&mx->timer_queue, deadline);
 
         if (cmd == NULL) {
-#if 0
-            fprintf(stderr, "%s: mx_await_command returned NULL ", __func__);
-#endif
 
             if (errno == ETIMEDOUT) {
-#if 0
-                fprintf(stderr, "due to a timeout.\n");
-#endif
-
                 MX_Event *event = mx_timer_event(timer);
 
                 mx_send_pointer(mx->event_pipe[WR], event);
@@ -720,34 +713,18 @@ static void *mx_timer_thread(void *arg)
                 listSort(&mx->timers, mx_compare_timers);
             }
             else {
-#if 0
-                fprintf(stderr, "due to an error.\n");
-#endif
-
                 mx_send_pointer(mx->event_pipe[WR],
                         mx_error_event(-1, "mx_await_command", errno));
                 break;
             }
         }
         else if (cmd->cmd_type == MX_CT_TIMER_CREATE) {
-#if 0
-            fprintf(stderr, "%s: new timer at %p with time %f\n",
-                    __func__, cmd->u.timer_create.timer,
-                    cmd->u.timer_create.timer->t);
-#endif
-
             listAppendTail(&mx->timers, cmd->u.timer_create.timer);
             listSort(&mx->timers, mx_compare_timers);
 
             free(cmd);
         }
         else if (cmd->cmd_type == MX_CT_TIMER_ADJUST) {
-#if 0
-            fprintf(stderr, "%s: adjusting timer at %p to time %f\n",
-                    __func__, cmd->u.timer_adjust.timer,
-                    cmd->u.timer_adjust.timer->t);
-#endif
-
             cmd->u.timer_adjust.timer->t = cmd->u.timer_adjust.t;
 
             listSort(&mx->timers, mx_compare_timers);
@@ -755,31 +732,17 @@ static void *mx_timer_thread(void *arg)
             free(cmd);
         }
         else if (cmd->cmd_type == MX_CT_TIMER_DELETE) {
-#if 0
-            fprintf(stderr, "%s: removing timer at %p\n",
-                    __func__, cmd->u.timer_delete.timer);
-#endif
-
             listRemove(&mx->timers, cmd->u.timer_delete.timer);
 
             free(cmd->u.timer_delete.timer);
             free(cmd);
         }
         else if (cmd->cmd_type == MX_CT_EXIT) {
-#if 0
-            fprintf(stderr, "%s: received exit.\n", __func__);
-#endif
-
             free(cmd);
 
             break;
         }
         else {
-#if 0
-            fprintf(stderr, "%s: received an unknown command (%d).\n",
-                    __func__, cmd->cmd_type);
-#endif
-
             mx_send_pointer(mx->event_pipe[WR],
                         mx_error_event(-1, "read", EINVAL));
 
@@ -789,15 +752,7 @@ static void *mx_timer_thread(void *arg)
         }
     }
 
-#if 0
-    fprintf(stderr, "%s: exited timer loop. Cleaning up.\n", __func__);
-#endif
-
     while ((timer = listRemoveHead(&mx->timers)) != NULL) {
-#if 0
-        fprintf(stderr, "%s: freeing timer at %p\n", __func__, timer);
-#endif
-
         free(timer);
     }
 
