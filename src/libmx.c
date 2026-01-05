@@ -240,17 +240,16 @@ static MX_Event *mx_disc_event(int fd, const char *whence)
 }
 
 /*
- * Create and return a new MX_ET_TIMER event. The time at which the timer went
- * off is <t>, the handler is <handler> and the udata to be passed in to it is
- * <udata>.
+ * Create and return a new MX_ET_TIMER event, about timer <timer> going off.
  */
 static MX_Event *mx_timer_event(MX_Timer *timer)
 {
     MX_Event *evt = mx_new_event(MX_ET_TIMER);
 
     // We're copying everything because we don't know what might happen to the
-    // original timer after we send this event. We *do* know that at least the
-    // time is going to be set to infinitely far into the future, at least.
+    // original timer after we send this event to the main thread. We *do*
+    // know that at least the time is going to be set to infinitely far into
+    // the future, at least.
 
     evt->u.timer.t       = timer->t;
     evt->u.timer.handler = timer->handler;

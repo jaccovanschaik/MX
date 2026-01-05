@@ -4,7 +4,7 @@
 /*
  * types.h: Datatypes for MX.
  *
- * Copyright:	(c) 2014-2025 Jacco van Schaik (jacco@jaccovanschaik.net)
+ * Copyright:	(c) 2014-2026 Jacco van Schaik (jacco@jaccovanschaik.net)
  * Version:	$Id: types.h 459 2022-01-29 19:31:00Z jacco $
  *
  * This software is distributed under the terms of the MIT license. See
@@ -40,16 +40,6 @@ enum {
 #define HEADER_SIZE (3 * sizeof(uint32_t))
 
 /*
- * Command to writer thread to write a message.
- */
-typedef struct {
-    uint32_t msg_type;                  // Message type.
-    uint32_t version;                   // Version.
-    uint32_t size;                      // Payload size.
-    char *payload;                      // Payload.
-} MX_WriteCommand;
-
-/*
  * MX timer data.
  */
 struct MX_Timer {
@@ -65,14 +55,17 @@ struct MX_Timer {
  */
 typedef struct {
     MX_Timer *timer;
-#if 0
-    uint32_t id;                        // ID of timer.
-    double t;                           // Time since epoch.
-                                        // Callback and udata.
-    void (*handler)(MX *mx, uint32_t id, double t, void *udata);
-    void *udata;
-#endif
 } MX_TimerCreateCommand;
+
+/*
+ * Command to writer thread to write a message.
+ */
+typedef struct {
+    uint32_t msg_type;                  // Message type.
+    uint32_t version;                   // Version.
+    uint32_t size;                      // Payload size.
+    char *payload;                      // Payload.
+} MX_WriteCommand;
 
 /*
  * Command to timer thread to adjust a timer.

@@ -1,3 +1,12 @@
+# cmd.txt: commands, going from the main thread to the writer and timer
+#          threads.
+#
+# Copyright:	(c) 2014-2026 Jacco van Schaik (jacco@jaccovanschaik.net)
+# Version:	$Id: msg.txt 289 2016-07-11 10:46:38Z jacco $
+#
+# This software is distributed under the terms of the MIT license. See
+# http://www.opensource.org/licenses/mit-license.php for details.
+
 write
 timer_create
 timer_adjust
